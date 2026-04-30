@@ -8,8 +8,10 @@ import {
   requestPushPermission,
   loginPushUser,
   getPushPermissionStatus,
+  getOneSignalSubscriptionInfo,
   type PushPermissionStatus,
 } from '@/features/notifications/services/pushService';
+import { upsertPushSubscription } from '@/features/notifications/services/pushSubscriptionsService';
 
 // ─── Status Labels ───────────────────────────────────────
 
@@ -36,6 +38,30 @@ export default function SettingsPage() {
       await loginPushUser(user.id);
       const status = await getPushPermissionStatus();
       setPushStatus(status);
+
+      // Save subscription ID to Supabase for direct targeting
+      if (status === 'granted') {
+        const subInfo = await getOneSignalSubscriptionInfo();
+        if (subInfo.subscriptionId) {
+          // Detect platform
+          const ua = navigator.userAgent;
+          let platform = 'web';
+          if (/android/i.test(ua)) platform = 'android';
+          else if (/iPhone|iPad|iPod/i.test(ua)) platform = 'ios';
+
+          await upsertPushSubscription({
+            user_id: user.id,
+            onesignal_subscription_id: subInfo.subscriptionId,
+            onesignal_user_id: subInfo.userId,
+            platform,
+            device_label: navigator.userAgent.slice(0, 100),
+            is_active: true,
+          });
+          console.info('[Settings] Push subscription saved:', subInfo.subscriptionId);
+        } else {
+          console.warn('[Settings] Push granted but no subscription ID from SDK yet.');
+        }
+      }
     } catch (err) {
       console.error('[Settings] Push setup failed:', err);
       setPushStatus('unavailable');

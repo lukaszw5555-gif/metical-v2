@@ -115,3 +115,34 @@ export async function getPushPermissionStatus(): Promise<PushPermissionStatus> {
     return 'unavailable';
   }
 }
+
+// ─── Subscription Info ───────────────────────────────────────
+
+export interface OneSignalSubscriptionInfo {
+  subscriptionId: string | null;
+  userId: string | null;
+}
+
+/**
+ * Get the current OneSignal Subscription ID and User ID from the SDK.
+ * These are needed to save to our push_subscriptions table for
+ * direct targeting via include_subscription_ids.
+ */
+export async function getOneSignalSubscriptionInfo(): Promise<OneSignalSubscriptionInfo> {
+  if (!initialised || !APP_ID) {
+    return { subscriptionId: null, userId: null };
+  }
+
+  try {
+    // OneSignal Web SDK v5 User Model
+    const subscriptionId = OneSignal.User.PushSubscription.id ?? null;
+    const userId = OneSignal.User.onesignalId ?? null;
+
+    console.info('[Push] Subscription info:', { subscriptionId, userId });
+    return { subscriptionId, userId };
+  } catch (err) {
+    console.error('[Push] Failed to get subscription info:', err);
+    return { subscriptionId: null, userId: null };
+  }
+}
+

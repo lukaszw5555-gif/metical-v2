@@ -3,6 +3,9 @@
  * ─────────────────────────────────────────────────────────────
  * Sends a Web Push notification via OneSignal REST API.
  *
+ * Production targeting: looks up push_subscriptions table by
+ * recipientId and sends via include_subscription_ids.
+ *
  * Auth: Requires a valid Supabase JWT (Authorization: Bearer …).
  *       Deploy with: npx supabase functions deploy send-push
  *
@@ -10,22 +13,17 @@
  *   ONESIGNAL_APP_ID
  *   ONESIGNAL_REST_API_KEY
  *
- * Request body (production):
+ * Request body:
  * {
- *   "recipientId": "uuid",           // → include_aliases.external_id
+ *   "recipientId": "uuid",
  *   "title": "string",
  *   "body": "string",
  *   "url": "/tasks/xyz",
  *   "priority": "normal" | "critical"
  * }
  *
- * Debug modes (add ONE of these fields to bypass external_id):
- *   "debugSubscriptionId": "sub-uuid"   // → include_subscription_ids
- *   "debugOneSignalId": "onesignal-uuid" // → include_aliases.onesignal_id
- *
- * If debugSubscriptionId or debugOneSignalId is set, that targeting
- * method is used INSTEAD of external_id. This lets you test whether
- * the subscription itself works, isolating external_id mapping issues.
+ * Debug mode (bypasses DB lookup):
+ *   "debugSubscriptionId": "sub-uuid"  // → include_subscription_ids directly
  */
 
 // @ts-ignore – Deno runtime
@@ -48,7 +46,6 @@ interface PushPayload {
   url?: string;
   priority?: "normal" | "critical";
   debugSubscriptionId?: string;
-  debugOneSignalId?: string;
 }
 
 serve(async (req: Request) => {
@@ -70,13 +67,16 @@ serve(async (req: Request) => {
     // @ts-ignore – Deno.env
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     // @ts-ignore – Deno.env
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    // @ts-ignore – Deno.env
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    // Auth client — uses caller's JWT to verify identity
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await authClient.auth.getUser();
     if (authError || !user) {
       console.warn("[send-push] REJECTED: auth failed:", authError?.message ?? "no user");
       return new Response(
@@ -85,6 +85,9 @@ serve(async (req: Request) => {
       );
     }
 
+    // Service client — bypasses RLS to read any user's subscriptions
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+
     // ── Secrets ──────────────────────────────────────────
     // @ts-ignore – Deno.env
     const appId = Deno.env.get("ONESIGNAL_APP_ID");
@@ -92,7 +95,7 @@ serve(async (req: Request) => {
     const restApiKey = Deno.env.get("ONESIGNAL_REST_API_KEY");
 
     if (!appId || !restApiKey) {
-      console.error("[send-push] REJECTED: missing ONESIGNAL_APP_ID or ONESIGNAL_REST_API_KEY");
+      console.error("[send-push] REJECTED: missing ONESIGNAL secrets");
       return new Response(
         JSON.stringify({ error: "Push service not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -101,22 +104,60 @@ serve(async (req: Request) => {
 
     // ── Parse body ───────────────────────────────────────
     const payload: PushPayload = await req.json();
-    const { recipientId, title, body, url, priority, debugSubscriptionId, debugOneSignalId } = payload;
+    const { recipientId, title, body, url, priority, debugSubscriptionId } = payload;
 
     if (!title || !body) {
-      console.warn("[send-push] REJECTED: missing title or body");
       return new Response(
         JSON.stringify({ error: "title and body are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Need at least one targeting field
-    if (!recipientId && !debugSubscriptionId && !debugOneSignalId) {
-      console.warn("[send-push] REJECTED: no targeting field provided");
+    if (!recipientId && !debugSubscriptionId) {
       return new Response(
-        JSON.stringify({ error: "recipientId, debugSubscriptionId, or debugOneSignalId is required" }),
+        JSON.stringify({ error: "recipientId or debugSubscriptionId is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Resolve subscription IDs ─────────────────────────
+    let subscriptionIds: string[] = [];
+    let targetingMode: string;
+
+    if (debugSubscriptionId) {
+      // Debug mode — direct subscription ID
+      subscriptionIds = [debugSubscriptionId];
+      targetingMode = `DEBUG → ${debugSubscriptionId}`;
+    } else {
+      // Production — look up from push_subscriptions table
+      const { data: subs, error: subError } = await serviceClient
+        .from("push_subscriptions")
+        .select("onesignal_subscription_id")
+        .eq("user_id", recipientId)
+        .eq("is_active", true);
+
+      if (subError) {
+        console.error("[send-push] DB lookup error:", subError.message);
+        return new Response(
+          JSON.stringify({ error: "Failed to lookup subscriptions", details: subError.message }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      subscriptionIds = (subs ?? []).map((s: { onesignal_subscription_id: string }) => s.onesignal_subscription_id);
+      targetingMode = `PROD → user=${recipientId}, found ${subscriptionIds.length} subscription(s)`;
+    }
+
+    // ── No subscriptions found ───────────────────────────
+    if (subscriptionIds.length === 0) {
+      console.warn(`[send-push] NO ACTIVE SUBSCRIPTIONS for recipientId="${recipientId}"`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          reason: "NO_ACTIVE_SUBSCRIPTIONS",
+          recipientId,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -136,33 +177,10 @@ serve(async (req: Request) => {
     // ── Build OneSignal payload ──────────────────────────
     const oneSignalBody: Record<string, unknown> = {
       app_id: appId,
+      include_subscription_ids: subscriptionIds,
       headings: { en: title },
       contents: { en: body },
     };
-
-    // Determine targeting mode
-    let targetingMode: string;
-
-    if (debugSubscriptionId) {
-      // MODE 1: Direct subscription ID targeting (bypasses external_id)
-      // Uses include_subscription_ids — targets the raw subscription/player
-      targetingMode = `DEBUG:include_subscription_ids → ${debugSubscriptionId}`;
-      oneSignalBody.include_subscription_ids = [debugSubscriptionId];
-      // NOTE: include_subscription_ids does NOT use target_channel
-
-    } else if (debugOneSignalId) {
-      // MODE 2: OneSignal ID alias targeting
-      // Uses include_aliases with onesignal_id
-      targetingMode = `DEBUG:include_aliases.onesignal_id → ${debugOneSignalId}`;
-      oneSignalBody.include_aliases = { onesignal_id: [debugOneSignalId] };
-      oneSignalBody.target_channel = "push";
-
-    } else {
-      // MODE 3: Production — external_id alias targeting
-      targetingMode = `PROD:include_aliases.external_id → ${recipientId}`;
-      oneSignalBody.include_aliases = { external_id: [recipientId] };
-      oneSignalBody.target_channel = "push";
-    }
 
     if (finalUrl) {
       oneSignalBody.url = finalUrl;
@@ -176,15 +194,13 @@ serve(async (req: Request) => {
     console.log("══════════════════════════════════════════");
     console.log("[send-push] >>> SENDING TO ONESIGNAL");
     console.log("[send-push] caller:", user.id, `(${user.email})`);
-    console.log("[send-push] targeting mode:", targetingMode);
-    console.log("[send-push] recipientId:", recipientId ?? "(not set)");
-    console.log("[send-push] debugSubscriptionId:", debugSubscriptionId ?? "(not set)");
-    console.log("[send-push] debugOneSignalId:", debugOneSignalId ?? "(not set)");
+    console.log("[send-push] targeting:", targetingMode);
+    console.log("[send-push] subscription_ids:", JSON.stringify(subscriptionIds));
     console.log("[send-push] title:", title);
     console.log("[send-push] body:", body.slice(0, 100));
     console.log("[send-push] url:", finalUrl ?? "(none)");
     console.log("[send-push] priority:", priority ?? "normal");
-    console.log("[send-push] FULL PAYLOAD:", JSON.stringify(oneSignalBody));
+    console.log("[send-push] PAYLOAD:", JSON.stringify(oneSignalBody));
     console.log("══════════════════════════════════════════");
 
     // ── Send ─────────────────────────────────────────────
@@ -203,13 +219,11 @@ serve(async (req: Request) => {
     console.log("══════════════════════════════════════════");
     console.log("[send-push] <<< ONESIGNAL RESPONSE");
     console.log("[send-push] HTTP status:", response.status);
-    console.log("[send-push] FULL RESPONSE:", JSON.stringify(responseBody));
+    console.log("[send-push] RESPONSE:", JSON.stringify(responseBody));
     console.log("[send-push] recipients:", responseBody?.recipients ?? "NOT IN RESPONSE");
     console.log("[send-push] errors:", responseBody?.errors ? JSON.stringify(responseBody.errors) : "none");
-    console.log("[send-push] notification id:", responseBody?.id ?? "none");
     console.log("══════════════════════════════════════════");
 
-    // ── Error response ───────────────────────────────────
     if (!response.ok) {
       console.error(`[send-push] OneSignal HTTP ${response.status} ERROR`);
       return new Response(
@@ -218,24 +232,12 @@ serve(async (req: Request) => {
       );
     }
 
-    // ── Zero recipients warning ──────────────────────────
     if (responseBody?.recipients === 0) {
-      console.warn(
-        `[send-push] ⚠️  ZERO RECIPIENTS for targeting: ${targetingMode}`
-      );
+      console.warn(`[send-push] ⚠️  ZERO RECIPIENTS: ${targetingMode}`);
     }
 
-    // ── "All included players are not subscribed" ────────
-    if (responseBody?.errors && Array.isArray(responseBody.errors)) {
-      for (const err of responseBody.errors) {
-        if (typeof err === "string" && err.includes("not subscribed")) {
-          console.warn(
-            `[send-push] ⚠️  "${err}" — targeting: ${targetingMode}. ` +
-            `The external_id may not be linked to any active push subscription in OneSignal.`
-          );
-        }
-      }
-      console.warn("[send-push] All errors:", JSON.stringify(responseBody.errors));
+    if (responseBody?.errors && Array.isArray(responseBody.errors) && responseBody.errors.length > 0) {
+      console.warn("[send-push] ⚠️  Errors:", JSON.stringify(responseBody.errors));
     }
 
     return new Response(

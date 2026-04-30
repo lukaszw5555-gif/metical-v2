@@ -4,7 +4,7 @@
  * Sends a Web Push notification via OneSignal REST API.
  *
  * Auth: Requires a valid Supabase JWT (Authorization: Bearer …).
- *       Deploy WITHOUT --no-verify-jwt.
+ *       Deploy with: supabase functions deploy send-push
  *
  * Secrets required (set via Supabase CLI):
  *   ONESIGNAL_APP_ID
@@ -51,6 +51,7 @@ serve(async (req: Request) => {
     // ── Verify JWT — reject unauthenticated requests ──────
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.warn("[send-push] No Authorization header");
       return new Response(
         JSON.stringify({ error: "Missing Authorization header" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -76,6 +77,8 @@ serve(async (req: Request) => {
       );
     }
 
+    console.log(`[send-push] Authenticated caller: ${user.id} (${user.email})`);
+
     // ── Read secrets ──────────────────────────────────────
     // @ts-ignore – Deno.env
     const appId = Deno.env.get("ONESIGNAL_APP_ID");
@@ -95,11 +98,21 @@ serve(async (req: Request) => {
     const { recipientId, title, body, url, priority } = payload;
 
     if (!recipientId || !title || !body) {
+      console.warn("[send-push] Missing required fields:", { recipientId, title, body });
       return new Response(
         JSON.stringify({ error: "recipientId, title, and body are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log("[send-push] Request:", JSON.stringify({
+      caller: user.id,
+      recipientId,
+      title,
+      body: body.slice(0, 80),
+      url,
+      priority,
+    }));
 
     // ── Build OneSignal request ────────────────────────────
     // Uses "include_aliases" with the User Model (OneSignal v5+)
@@ -113,15 +126,30 @@ serve(async (req: Request) => {
       contents: { en: body },
     };
 
-    // Deep link URL
+    // Build full URL from relative path if needed
     if (url) {
-      oneSignalPayload.url = url;
+      if (url.startsWith("http")) {
+        oneSignalPayload.url = url;
+      } else {
+        // Extract origin from request headers (set by the browser)
+        const origin = req.headers.get("origin")
+          || req.headers.get("referer")?.replace(/\/[^/]*$/, "")
+          || "";
+        if (origin) {
+          oneSignalPayload.url = `${origin}${url}`;
+        } else {
+          oneSignalPayload.url = url;
+        }
+      }
     }
 
     // Priority: 10 = critical, 5 = normal (Android/Web)
     if (priority === "critical") {
       oneSignalPayload.priority = 10;
     }
+
+    // Log the exact payload being sent to OneSignal (safe — no REST API key)
+    console.log("[send-push] OneSignal payload:", JSON.stringify(oneSignalPayload));
 
     // ── Send to OneSignal ─────────────────────────────────
     const response = await fetch(ONESIGNAL_API, {
@@ -135,15 +163,32 @@ serve(async (req: Request) => {
 
     const result = await response.json();
 
+    // Always log the full OneSignal response
+    console.log(`[send-push] OneSignal HTTP ${response.status}:`, JSON.stringify(result));
+
     if (!response.ok) {
-      console.error("[send-push] OneSignal error:", JSON.stringify(result));
+      console.error(`[send-push] OneSignal error ${response.status}:`, JSON.stringify(result));
       return new Response(
         JSON.stringify({ error: "OneSignal API error", details: result }),
         { status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`[send-push] Push sent by ${user.id}:`, JSON.stringify(result));
+    // ── Check for zero recipients ─────────────────────────
+    const recipients = result?.recipients ?? null;
+    if (recipients === 0) {
+      console.warn(
+        `[send-push] WARNING: OneSignal accepted but 0 recipients! ` +
+        `recipientId="${recipientId}" — user may not be subscribed ` +
+        `or external_id does not match any OneSignal player.`
+      );
+    } else {
+      console.log(
+        `[send-push] Push delivered: caller=${user.id} -> recipient=${recipientId}, ` +
+        `recipients=${recipients}, notification_id=${result?.id ?? "n/a"}`
+      );
+    }
+
     return new Response(
       JSON.stringify({ success: true, onesignal: result }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -7,6 +7,11 @@
  * This is fire-and-forget: failures are logged but never crash
  * the app. The in-app notification in the `notifications` table
  * remains the source of truth.
+ *
+ * IMPORTANT: This service does NOT check the sender's local push
+ * permission. An admin without push enabled can still send pushes
+ * to operators who do have push enabled. The Edge Function handles
+ * delivery via OneSignal server-side.
  */
 
 import { supabase } from '@/lib/supabase/client';
@@ -26,7 +31,9 @@ export interface PushNotificationPayload {
 /**
  * Send a push notification through the Edge Function.
  *
- * - Silently no-ops if the user is sending to themselves.
+ * - Skips if recipientId is empty/undefined.
+ * - Skips if the caller is sending to themselves.
+ * - Does NOT depend on the sender's push permission status.
  * - Silently catches all errors (console.warn in dev).
  * - Returns `true` if the push was accepted, `false` otherwise.
  */
@@ -34,12 +41,29 @@ export async function sendPushNotification(
   payload: PushNotificationPayload
 ): Promise<boolean> {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    // Guard: no recipient
+    if (!payload.recipientId) {
+      console.warn('[PushSend] No recipientId — skipping.');
+      return false;
+    }
 
-    // Don't push to yourself
+    // Guard: don't push to yourself
+    const { data: { session } } = await supabase.auth.getSession();
     if (session?.user?.id === payload.recipientId) {
       return false;
     }
+
+    // If no session at all, the Edge Function will return 401 anyway
+    if (!session) {
+      console.warn('[PushSend] No active session — push will be rejected by Edge Function.');
+      return false;
+    }
+
+    console.info('[PushSend] Sending push:', {
+      recipientId: payload.recipientId,
+      title: payload.title,
+      priority: payload.priority ?? 'normal',
+    });
 
     const { data, error } = await supabase.functions.invoke('send-push', {
       body: {
@@ -57,11 +81,12 @@ export async function sendPushNotification(
     }
 
     if (data?.success) {
-      console.info('[PushSend] Push delivered:', payload.title);
+      const recipients = data?.onesignal?.recipients ?? '?';
+      console.info(`[PushSend] Push accepted: "${payload.title}" -> recipients=${recipients}`);
       return true;
     }
 
-    console.warn('[PushSend] Unexpected response:', data);
+    console.warn('[PushSend] Unexpected response:', JSON.stringify(data));
     return false;
   } catch (err) {
     console.warn('[PushSend] Failed (non-critical):', err);

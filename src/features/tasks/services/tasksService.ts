@@ -3,11 +3,13 @@ import type { Task, TaskStatus } from '@/types/database';
 
 // ─── Fetch Tasks ─────────────────────────────────────────
 
-/** Fetch all tasks visible to the current user (RLS enforced) */
+/** Fetch all ACTIVE tasks visible to the current user (RLS enforced).
+ *  Excludes archived tasks. */
 export async function getTasks(): Promise<Task[]> {
   const { data, error } = await supabase
     .from('tasks')
     .select('*')
+    .is('archived_at', null)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -113,6 +115,34 @@ export async function updateTask(
   return data as Task;
 }
 
+// ─── Edit Task (title + description only) ────────────────
+
+export interface EditTaskInput {
+  title: string;
+  description: string | null;
+}
+
+/** Edit a task's title and description. Only the author should call this.
+ *  Authorization is enforced in the UI (created_by check). */
+export async function editTask(
+  id: string,
+  input: EditTaskInput
+): Promise<Task> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .update({
+      title: input.title,
+      description: input.description,
+      last_activity_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Task;
+}
+
 // ─── Update Status ───────────────────────────────────────
 
 /** Update only the status of a task.
@@ -135,6 +165,43 @@ export async function updateTaskStatus(
   return data as Task;
 }
 
+// ─── Archive Task ────────────────────────────────────────
+
+/** Soft-archive a task. Sets archived_at and archived_by.
+ *  Only the author should call this (enforced in UI). */
+export async function archiveTask(
+  id: string,
+  userId: string
+): Promise<Task> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .update({
+      archived_at: new Date().toISOString(),
+      archived_by: userId,
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Task;
+}
+
+// ─── Fetch Archived Tasks ────────────────────────────────
+
+/** Fetch all archived tasks visible to the current user.
+ *  Returns tasks where archived_at IS NOT NULL. */
+export async function getArchivedTasks(): Promise<Task[]> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select('*')
+    .not('archived_at', 'is', null)
+    .order('archived_at', { ascending: false });
+
+  if (error) throw error;
+  return data as Task[];
+}
+
 // ─── Delete Task ─────────────────────────────────────────
 
 /** Delete a task (admin only via RLS) */
@@ -155,6 +222,7 @@ export async function getTasksByInvestmentId(investmentId: string): Promise<Task
     .from('tasks')
     .select('*')
     .eq('investment_id', investmentId)
+    .is('archived_at', null)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -180,3 +248,4 @@ export async function bumpTask(id: string): Promise<Task> {
   if (error) throw error;
   return data as Task;
 }
+

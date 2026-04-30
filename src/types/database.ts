@@ -20,6 +20,8 @@ export interface Task {
   completed_at: string | null;
   last_activity_at: string;
   last_bumped_at: string | null;
+  archived_at: string | null;
+  archived_by: string | null;
 }
 
 // ─── Investment ──────────────────────────────────────────
@@ -139,6 +141,7 @@ export type ActivityEventType =
   | 'status_changed'
   | 'task_bumped'
   | 'task_edited'
+  | 'task_archived'
   | 'investment_created'
   | 'investment_edited'
   | 'investment_comment'

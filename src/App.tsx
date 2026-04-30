@@ -7,6 +7,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import LoginPage from '@/features/auth/LoginPage';
 import TasksPage from '@/features/tasks/TasksPage';
 import TaskDetailPage from '@/features/tasks/TaskDetailPage';
+import ArchivedTasksPage from '@/features/tasks/ArchivedTasksPage';
 import InvestmentsPage from '@/features/investments/InvestmentsPage';
 import InvestmentDetailPage from '@/features/investments/InvestmentDetailPage';
 import NotificationsPage from '@/features/notifications/NotificationsPage';
@@ -30,6 +31,7 @@ export default function App() {
             <Route element={<MobileLayout />}>
               {/* Tasks */}
               <Route path="/tasks" element={<TasksPage />} />
+              <Route path="/tasks/archived" element={<ArchivedTasksPage />} />
               <Route path="/tasks/:id" element={<TaskDetailPage />} />
 
               {/* Investments */}

@@ -297,7 +297,7 @@ export default function TasksPage() {
   return (
     <>
       <PageHeader title="Zadania" />
-      <div className="px-4 py-4 mx-auto max-w-lg">
+      <div className="px-4 py-4 mx-auto max-w-lg pb-24">
         {/* ─── Category Tabs ──────────────────────────────── */}
         <div className="flex gap-1 bg-surface-100 p-1 rounded-xl mb-3">
           {categories.map((c) => (

@@ -78,7 +78,7 @@ export default function TaskCard({ task, profiles, investments }: TaskCardProps)
             <span className="inline-flex items-center gap-1 text-xs text-muted-400">
               <User size={11} className="shrink-0" />
               <span className="truncate max-w-[120px]">
-                od {creator.full_name || creator.email}
+                Zlecający: {creator.full_name || creator.email}
               </span>
             </span>
           )}

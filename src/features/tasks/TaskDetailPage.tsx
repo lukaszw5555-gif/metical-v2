@@ -12,7 +12,7 @@ import { sendPushNotification } from '@/features/notifications/services/pushSend
 import { getActiveProfiles } from '@/lib/services/profilesService';
 import type { Task, TaskStatus, TaskComment, ActivityLogEntry, UserProfile, Investment } from '@/types/database';
 import {
-  TASK_STATUS_LABELS,
+  TASK_STATUS_DISPLAY_LABELS,
   TASK_STATUS_COLORS,
   TASK_STATUSES,
   TASK_PRIORITY_LABELS,
@@ -274,8 +274,8 @@ export default function TaskDetailPage() {
     switch (entry.event_type) {
       case 'task_status_changed': {
         const meta = entry.metadata as { old_status?: string; new_status?: string };
-        const from = TASK_STATUS_LABELS[meta.old_status as TaskStatus] ?? meta.old_status;
-        const to = TASK_STATUS_LABELS[meta.new_status as TaskStatus] ?? meta.new_status;
+        const from = TASK_STATUS_DISPLAY_LABELS[meta.old_status as TaskStatus] ?? meta.old_status;
+        const to = TASK_STATUS_DISPLAY_LABELS[meta.new_status as TaskStatus] ?? meta.new_status;
         return `Zmieniono status: ${from} → ${to}`;
       }
       case 'task_comment_added':
@@ -358,7 +358,7 @@ export default function TaskDetailPage() {
                 className="w-2 h-2 rounded-full"
                 style={{ backgroundColor: statusColor }}
               />
-              {TASK_STATUS_LABELS[task.status]}
+              {TASK_STATUS_DISPLAY_LABELS[task.status]}
             </span>
 
             <span
@@ -480,7 +480,7 @@ export default function TaskDetailPage() {
                       }}
                     />
                   )}
-                  {TASK_STATUS_LABELS[s]}
+                  {TASK_STATUS_DISPLAY_LABELS[s]}
                 </button>
               );
             })}

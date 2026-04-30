@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
 import { useAuth } from '@/context/AuthContext';
 import { getTasks, createTask } from '@/features/tasks/services/tasksService';
@@ -12,17 +12,50 @@ import type { TaskFormData } from '@/features/tasks/components/TaskFormModal';
 import type { Task, UserProfile, Investment } from '@/types/database';
 import { ClipboardCheck, Plus, Loader2, AlertCircle } from 'lucide-react';
 
-// ─── Filter Types ────────────────────────────────────────
+// ─── Category & Sub-filter Types ─────────────────────────
 
-type TaskFilter = 'moje' | 'zlecone' | 'oczekujace' | 'zalegle' | 'zrobione';
+type Category = 'moje' | 'zlecone' | 'podbite';
 
-const FILTERS: { key: TaskFilter; label: string }[] = [
-  { key: 'moje', label: 'Moje' },
-  { key: 'zlecone', label: 'Zlecone' },
-  { key: 'oczekujace', label: 'Oczekujące' },
-  { key: 'zalegle', label: 'Zaległe' },
-  { key: 'zrobione', label: 'Zrobione' },
+type MojeFilter = 'aktywne' | 'wlasne' | 'przypisane' | 'podbite' | 'wykonane';
+type ZleconeFilter = 'aktywne' | 'nierozpoczete' | 'w_trakcie' | 'wykonane';
+
+interface FilterDef {
+  key: string;
+  label: string;
+}
+
+const MOJE_FILTERS: FilterDef[] = [
+  { key: 'aktywne', label: 'Aktywne' },
+  { key: 'wlasne', label: 'Własne' },
+  { key: 'przypisane', label: 'Przypisane' },
+  { key: 'podbite', label: 'Podbite' },
+  { key: 'wykonane', label: 'Wykonane' },
 ];
+
+const ZLECONE_FILTERS: FilterDef[] = [
+  { key: 'aktywne', label: 'Aktywne' },
+  { key: 'nierozpoczete', label: 'Nierozpoczęte' },
+  { key: 'w_trakcie', label: 'W trakcie' },
+  { key: 'wykonane', label: 'Wykonane' },
+];
+
+// ─── Filter Helpers ──────────────────────────────────────
+
+/** Is task status "nie rozpoczęto" (do_zrobienia or czeka) */
+const isNotStarted = (t: Task) =>
+  t.status === 'do_zrobienia' || t.status === 'czeka';
+
+/** Tasks assigned to me (by others) — excludes self-assigned */
+const isAssignedToMe = (t: Task, userId: string) =>
+  t.assigned_to === userId && t.created_by !== userId;
+
+/** Tasks I created for myself */
+const isSelfAssigned = (t: Task, userId: string) =>
+  t.created_by === userId && t.assigned_to === userId;
+
+/** Tasks I created and assigned to others */
+const isAssignedToOthers = (t: Task, userId: string) =>
+  t.created_by === userId && t.assigned_to !== userId;
 
 // ─── Component ───────────────────────────────────────────
 
@@ -35,8 +68,10 @@ export default function TasksPage() {
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeFilter, setActiveFilter] = useState<TaskFilter>('moje');
-  const [showForm, setShowForm] = useState(false);
+
+  const [category, setCategory] = useState<Category>('moje');
+  const [mojeFilter, setMojeFilter] = useState<MojeFilter>('aktywne');
+  const [zleconeFilter, setZleconeFilter] = useState<ZleconeFilter>('aktywne');
 
   // ─── Fetch Data ──────────────────────────────────────────
 
@@ -63,30 +98,116 @@ export default function TasksPage() {
     loadData();
   }, [loadData]);
 
-  // ─── Filter Logic ────────────────────────────────────────
+  // ─── Category Counts ────────────────────────────────────
 
-  const today = new Date().toISOString().split('T')[0];
+  const counts = useMemo(() => {
+    const moje = tasks.filter(
+      (t) =>
+        (t.assigned_to === userId || (t.created_by === userId && t.assigned_to === userId)) &&
+        t.status !== 'zrobione'
+    ).length;
 
-  const filteredTasks = tasks.filter((t) => {
-    switch (activeFilter) {
-      case 'moje':
-        return t.assigned_to === userId && t.status !== 'zrobione';
-      case 'zlecone':
-        return (
-          t.created_by === userId &&
-          t.assigned_to !== userId &&
+    const zlecone = tasks.filter(
+      (t) => isAssignedToOthers(t, userId) && t.status !== 'zrobione'
+    ).length;
+
+    const podbite = tasks.filter(
+      (t) =>
+        isAssignedToOthers(t, userId) &&
+        t.awaiting_response &&
+        t.status !== 'zrobione'
+    ).length;
+
+    return { moje, zlecone, podbite };
+  }, [tasks, userId]);
+
+  // ─── Filtered Tasks ─────────────────────────────────────
+
+  const filteredTasks = useMemo(() => {
+    let result: Task[] = [];
+
+    if (category === 'moje') {
+      switch (mojeFilter) {
+        case 'aktywne':
+          // Self-assigned + assigned to me by others, excluding done
+          result = tasks.filter(
+            (t) =>
+              (isSelfAssigned(t, userId) || isAssignedToMe(t, userId)) &&
+              t.status !== 'zrobione'
+          );
+          break;
+        case 'wlasne':
+          // Created by me for myself
+          result = tasks.filter((t) => isSelfAssigned(t, userId));
+          break;
+        case 'przypisane':
+          // Assigned to me by someone else
+          result = tasks.filter((t) => isAssignedToMe(t, userId));
+          break;
+        case 'podbite':
+          // Assigned to me + awaiting response
+          result = tasks.filter(
+            (t) => t.assigned_to === userId && t.awaiting_response && t.status !== 'zrobione'
+          );
+          break;
+        case 'wykonane':
+          // Done: self-assigned or assigned to me
+          result = tasks.filter(
+            (t) =>
+              (isSelfAssigned(t, userId) || isAssignedToMe(t, userId)) &&
+              t.status === 'zrobione'
+          );
+          break;
+      }
+    } else if (category === 'zlecone') {
+      switch (zleconeFilter) {
+        case 'aktywne':
+          // Created by me, assigned to others, not done
+          result = tasks.filter(
+            (t) => isAssignedToOthers(t, userId) && t.status !== 'zrobione'
+          );
+          break;
+        case 'nierozpoczete':
+          result = tasks.filter(
+            (t) => isAssignedToOthers(t, userId) && isNotStarted(t)
+          );
+          break;
+        case 'w_trakcie':
+          result = tasks.filter(
+            (t) => isAssignedToOthers(t, userId) && t.status === 'w_trakcie'
+          );
+          break;
+        case 'wykonane':
+          result = tasks.filter(
+            (t) => isAssignedToOthers(t, userId) && t.status === 'zrobione'
+          );
+          break;
+      }
+    } else {
+      // podbite — assigned to others by me, bumped, not done
+      result = tasks.filter(
+        (t) =>
+          isAssignedToOthers(t, userId) &&
+          t.awaiting_response &&
           t.status !== 'zrobione'
-        );
-      case 'oczekujace':
-        return t.awaiting_response && t.status !== 'zrobione';
-      case 'zalegle':
-        return t.due_date < today && t.status !== 'zrobione';
-      case 'zrobione':
-        return t.status === 'zrobione';
-      default:
-        return true;
+      );
     }
-  });
+
+    // Sort: bumped first (for "Moje / Aktywne"), then by last_activity_at desc
+    result.sort((a, b) => {
+      // In "Moje" category, bumped tasks float to top
+      if (category === 'moje') {
+        const aBumped = a.awaiting_response && a.assigned_to === userId ? 1 : 0;
+        const bBumped = b.awaiting_response && b.assigned_to === userId ? 1 : 0;
+        if (aBumped !== bBumped) return bBumped - aBumped;
+      }
+      return (b.last_activity_at ?? b.updated_at).localeCompare(
+        a.last_activity_at ?? a.updated_at
+      );
+    });
+
+    return result;
+  }, [tasks, userId, category, mojeFilter, zleconeFilter]);
 
   // ─── Create Task ─────────────────────────────────────────
 
@@ -127,28 +248,98 @@ export default function TasksPage() {
     await loadData();
   };
 
+  const [showForm, setShowForm] = useState(false);
+
+  // ─── Active sub-filters ─────────────────────────────────
+
+  const subFilters = category === 'moje' ? MOJE_FILTERS : category === 'zlecone' ? ZLECONE_FILTERS : null;
+  const activeSubFilter = category === 'moje' ? mojeFilter : category === 'zlecone' ? zleconeFilter : null;
+
+  const setSubFilter = (key: string) => {
+    if (category === 'moje') setMojeFilter(key as MojeFilter);
+    else if (category === 'zlecone') setZleconeFilter(key as ZleconeFilter);
+  };
+
+  // ─── Empty state messages ───────────────────────────────
+
+  const emptyMessage = (() => {
+    if (category === 'moje') {
+      switch (mojeFilter) {
+        case 'aktywne': return 'Nie masz aktywnych zadań.';
+        case 'wlasne': return 'Nie masz zadań własnych.';
+        case 'przypisane': return 'Nie masz zadań przypisanych przez innych.';
+        case 'podbite': return 'Brak podbijanych zadań.';
+        case 'wykonane': return 'Brak wykonanych zadań.';
+      }
+    } else if (category === 'zlecone') {
+      switch (zleconeFilter) {
+        case 'aktywne': return 'Nie zlecasz nikomu żadnych zadań.';
+        case 'nierozpoczete': return 'Brak nierozpoczętych zadań zleconych.';
+        case 'w_trakcie': return 'Brak zadań zleconych w trakcie.';
+        case 'wykonane': return 'Brak wykonanych zadań zleconych.';
+      }
+    }
+    return 'Brak podbijanych zadań oczekujących na reakcję.';
+  })();
+
   // ─── Render ──────────────────────────────────────────────
+
+  const categories: { key: Category; label: string; count: number }[] = [
+    { key: 'moje', label: 'Moje', count: counts.moje },
+    { key: 'zlecone', label: 'Zlecone', count: counts.zlecone },
+    { key: 'podbite', label: 'Podbite', count: counts.podbite },
+  ];
 
   return (
     <>
       <PageHeader title="Zadania" />
       <div className="px-4 py-4 mx-auto max-w-lg">
-        {/* Filter chips */}
-        <div className="flex gap-2 overflow-x-auto pb-3 -mx-4 px-4 scrollbar-hide">
-          {FILTERS.map((f) => (
+        {/* ─── Category Tabs ──────────────────────────────── */}
+        <div className="flex gap-1 bg-surface-100 p-1 rounded-xl mb-3">
+          {categories.map((c) => (
             <button
-              key={f.key}
-              onClick={() => setActiveFilter(f.key)}
-              className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                activeFilter === f.key
-                  ? 'bg-primary-600 text-white shadow-sm'
-                  : 'bg-white text-muted-600 hover:bg-primary-50 hover:text-primary-600 border border-surface-200'
+              key={c.key}
+              onClick={() => setCategory(c.key)}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                category === c.key
+                  ? 'bg-white text-primary-700 shadow-sm'
+                  : 'text-muted-500 hover:text-muted-700'
               }`}
             >
-              {f.label}
+              {c.label}
+              {c.count > 0 && (
+                <span
+                  className={`min-w-[18px] h-[18px] inline-flex items-center justify-center px-1 text-[10px] font-bold rounded-full leading-none ${
+                    category === c.key
+                      ? 'bg-primary-100 text-primary-700'
+                      : 'bg-surface-200 text-muted-500'
+                  }`}
+                >
+                  {c.count}
+                </span>
+              )}
             </button>
           ))}
         </div>
+
+        {/* ─── Sub-filters ────────────────────────────────── */}
+        {subFilters && (
+          <div className="flex gap-1.5 overflow-x-auto pb-3 -mx-4 px-4 scrollbar-hide">
+            {subFilters.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setSubFilter(f.key)}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  activeSubFilter === f.key
+                    ? 'bg-primary-600 text-white shadow-sm'
+                    : 'bg-white text-muted-500 hover:bg-primary-50 hover:text-primary-600 border border-surface-200'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Loading */}
         {loading && (
@@ -185,17 +376,9 @@ export default function TasksPage() {
               Brak zadań
             </h2>
             <p className="text-sm text-muted-500 max-w-xs mb-6">
-              {activeFilter === 'moje'
-                ? 'Nie masz żadnych zadań. Utwórz pierwsze zadanie.'
-                : activeFilter === 'zlecone'
-                  ? 'Nie zlecasz nikomu żadnych zadań.'
-                  : activeFilter === 'oczekujace'
-                    ? 'Brak zadań oczekujących na odpowiedź.'
-                    : activeFilter === 'zalegle'
-                      ? 'Brak zaległych zadań. Świetna robota!'
-                      : 'Brak ukończonych zadań.'}
+              {emptyMessage}
             </p>
-            {activeFilter === 'moje' && (
+            {category === 'moje' && mojeFilter === 'aktywne' && (
               <button
                 onClick={() => setShowForm(true)}
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-xl hover:bg-primary-700 active:scale-[0.98] transition-all shadow-sm"

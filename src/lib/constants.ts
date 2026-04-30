@@ -8,6 +8,7 @@ import type {
 
 // ─── Task Status ─────────────────────────────────────────
 
+/** Raw DB status labels (kept for backwards compatibility) */
 export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   do_zrobienia: 'Do zrobienia',
   w_trakcie: 'W trakcie',
@@ -15,10 +16,18 @@ export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
   zrobione: 'Zrobione',
 };
 
+/** Simplified display labels for the UI (Sprint UX 1) */
+export const TASK_STATUS_DISPLAY_LABELS: Record<TaskStatus, string> = {
+  do_zrobienia: 'Nie rozpoczęto',
+  w_trakcie: 'W trakcie',
+  czeka: 'Nie rozpoczęto',
+  zrobione: 'Zrobione',
+};
+
 export const TASK_STATUS_COLORS: Record<TaskStatus, string> = {
   do_zrobienia: '#6366f1', // indigo
   w_trakcie: '#f59e0b',   // amber
-  czeka: '#8b5cf6',       // violet
+  czeka: '#6366f1',        // indigo (same as do_zrobienia — both are "Nie rozpoczęto")
   zrobione: '#22c55e',    // green
 };
 

@@ -11,7 +11,7 @@ import { getActiveProfiles } from '@/lib/services/profilesService';
 import type { Investment, InvestmentStatus, InvestmentComment, ActivityLogEntry, UserProfile, Task } from '@/types/database';
 import {
   INVESTMENT_STATUS_LABELS, INVESTMENT_STATUS_COLORS, INVESTMENT_STATUSES,
-  INVESTMENT_TYPE_LABELS, TASK_STATUS_LABELS, TASK_STATUS_COLORS,
+  INVESTMENT_TYPE_LABELS, TASK_STATUS_DISPLAY_LABELS, TASK_STATUS_COLORS,
   TASK_PRIORITY_LABELS, TASK_PRIORITY_COLORS,
 } from '@/lib/constants';
 import {
@@ -232,7 +232,7 @@ export default function InvestmentDetailPage() {
                       <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-medium"
                         style={{ backgroundColor: sc2 + '18', color: sc2 }}>
                         <span className="w-1 h-1 rounded-full" style={{ backgroundColor: sc2 }} />
-                        {TASK_STATUS_LABELS[t.status]}
+                        {TASK_STATUS_DISPLAY_LABELS[t.status]}
                       </span>
                       <span className="text-muted-400">{t.due_date}</span>
                       {assignee && <span className="text-muted-400 truncate max-w-[80px]">{assignee.full_name || assignee.email}</span>}

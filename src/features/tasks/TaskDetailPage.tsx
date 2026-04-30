@@ -8,6 +8,7 @@ import { getTaskComments, addTaskComment } from '@/features/tasks/services/taskC
 import { getInvestmentById } from '@/features/investments/services/investmentsService';
 import { fetchTaskActivity, logActivity } from '@/features/activity/services/activityLogService';
 import { createNotification } from '@/features/notifications/services/notificationsService';
+import { sendPushNotification } from '@/features/notifications/services/pushSendService';
 import { getActiveProfiles } from '@/lib/services/profilesService';
 import type { Task, TaskStatus, TaskComment, ActivityLogEntry, UserProfile, Investment } from '@/types/database';
 import {
@@ -142,6 +143,15 @@ export default function TaskDetailPage() {
           body: `${task.title} → ${newStatus}`,
           task_id: task.id,
         });
+
+        // Push notification (fire-and-forget)
+        sendPushNotification({
+          recipientId: otherParty,
+          title: 'Zmieniono status zadania',
+          body: `${task.title} → ${newStatus}`,
+          url: `/tasks/${task.id}`,
+          priority: 'normal',
+        });
       }
 
       await refreshCommentsAndActivity();
@@ -189,6 +199,15 @@ export default function TaskDetailPage() {
           title: 'Nowy komentarz w zadaniu',
           body: commentBody.trim().slice(0, 80),
           task_id: task.id,
+        });
+
+        // Push notification (fire-and-forget)
+        sendPushNotification({
+          recipientId: otherParty,
+          title: 'Nowy komentarz',
+          body: commentBody.trim().slice(0, 80),
+          url: `/tasks/${task.id}`,
+          priority: 'normal',
         });
       }
 
@@ -486,6 +505,15 @@ export default function TaskDetailPage() {
                   title: 'Podbito zadanie',
                   body: task.title,
                   task_id: task.id,
+                  priority: 'critical',
+                });
+
+                // Push notification (fire-and-forget)
+                sendPushNotification({
+                  recipientId: task.assigned_to!,
+                  title: 'Podbito zadanie',
+                  body: task.title,
+                  url: `/tasks/${task.id}`,
                   priority: 'critical',
                 });
 

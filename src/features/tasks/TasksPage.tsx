@@ -5,6 +5,7 @@ import { getTasks, createTask } from '@/features/tasks/services/tasksService';
 import { getInvestments } from '@/features/investments/services/investmentsService';
 import { getActiveProfiles } from '@/lib/services/profilesService';
 import { createNotification } from '@/features/notifications/services/notificationsService';
+import { sendPushNotification } from '@/features/notifications/services/pushSendService';
 import TaskCard from '@/features/tasks/components/TaskCard';
 import TaskFormModal from '@/features/tasks/components/TaskFormModal';
 import type { TaskFormData } from '@/features/tasks/components/TaskFormModal';
@@ -110,6 +111,15 @@ export default function TasksPage() {
         title: 'Nowe zadanie',
         body: task.title,
         task_id: task.id,
+      });
+
+      // Push notification (fire-and-forget)
+      sendPushNotification({
+        recipientId: data.assigned_to,
+        title: 'Nowe zadanie',
+        body: task.title,
+        url: `/tasks/${task.id}`,
+        priority: 'normal',
       });
     }
 

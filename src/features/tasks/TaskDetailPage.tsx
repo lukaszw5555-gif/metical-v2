@@ -14,7 +14,6 @@ import type { Task, TaskStatus, TaskComment, ActivityLogEntry, UserProfile, Inve
 import {
   TASK_STATUS_DISPLAY_LABELS,
   TASK_STATUS_COLORS,
-  TASK_STATUSES,
   TASK_PRIORITY_LABELS,
   TASK_PRIORITY_COLORS,
 } from '@/lib/constants';
@@ -448,16 +447,23 @@ export default function TaskDetailPage() {
           <p className="text-xs font-medium text-muted-500 uppercase tracking-wide mb-3">
             Zmień status
           </p>
-          <div className="grid grid-cols-2 gap-2">
-            {TASK_STATUSES.map((s) => {
-              const isActive = task.status === s;
-              const isUpdating = updatingStatus === s;
-              const color = TASK_STATUS_COLORS[s];
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { dbValue: 'do_zrobienia' as const, label: 'Nie rozpoczęto' },
+              { dbValue: 'w_trakcie' as const, label: 'W trakcie' },
+              { dbValue: 'zrobione' as const, label: 'Zrobione' },
+            ]).map(({ dbValue, label }) => {
+              // 'czeka' is visually treated as 'Nie rozpoczęto'
+              const isActive =
+                task.status === dbValue ||
+                (dbValue === 'do_zrobienia' && task.status === 'czeka');
+              const isUpdating = updatingStatus === dbValue;
+              const color = TASK_STATUS_COLORS[dbValue];
 
               return (
                 <button
-                  key={s}
-                  onClick={() => handleStatusChange(s)}
+                  key={dbValue}
+                  onClick={() => handleStatusChange(dbValue)}
                   disabled={isActive || updatingStatus !== null}
                   className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                     isActive
@@ -480,7 +486,7 @@ export default function TaskDetailPage() {
                       }}
                     />
                   )}
-                  {TASK_STATUS_DISPLAY_LABELS[s]}
+                  {label}
                 </button>
               );
             })}

@@ -137,12 +137,16 @@ export default function TasksPage() {
           );
           break;
         case 'wlasne':
-          // Created by me for myself
-          result = tasks.filter((t) => isSelfAssigned(t, userId));
+          // Created by me for myself, excluding done
+          result = tasks.filter(
+            (t) => isSelfAssigned(t, userId) && t.status !== 'zrobione'
+          );
           break;
         case 'przypisane':
-          // Assigned to me by someone else
-          result = tasks.filter((t) => isAssignedToMe(t, userId));
+          // Assigned to me by someone else, excluding done
+          result = tasks.filter(
+            (t) => isAssignedToMe(t, userId) && t.status !== 'zrobione'
+          );
           break;
         case 'podbite':
           // Assigned to me + awaiting response

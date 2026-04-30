@@ -26,7 +26,7 @@ export interface PushNotificationPayload {
   priority?: 'normal' | 'critical';
 }
 
-// ─── Public API ──────────────────────────────────────────
+// ─── Production API ──────────────────────────────────────
 
 /**
  * Send a push notification through the Edge Function.
@@ -92,4 +92,54 @@ export async function sendPushNotification(
     console.warn('[PushSend] Failed (non-critical):', err);
     return false;
   }
+}
+
+// ─── Debug API ───────────────────────────────────────────
+
+/**
+ * Debug: send a test push using alternative targeting.
+ * Exposed on window.__debugSendPush for console access.
+ *
+ * Usage from browser console (must be logged in):
+ *
+ *   // TEST 1: By Subscription ID (bypasses external_id)
+ *   window.__debugSendPush({ debugSubscriptionId: "8fa67f2c-4df0-4e4b-9cd4-f47f3db0e853" })
+ *
+ *   // TEST 2: By OneSignal ID
+ *   window.__debugSendPush({ debugOneSignalId: "ONESIGNAL-USER-ID" })
+ *
+ *   // TEST 3: By External ID (production mode)
+ *   window.__debugSendPush({ recipientId: "9012ec6c-b061-45ff-be1b-c96018f5b251" })
+ *
+ * If TEST 1 delivers but TEST 3 doesn't → external_id mapping issue.
+ */
+export async function debugSendPush(opts: {
+  title?: string;
+  body?: string;
+  debugSubscriptionId?: string;
+  debugOneSignalId?: string;
+  recipientId?: string;
+}): Promise<unknown> {
+  const { data, error } = await supabase.functions.invoke('send-push', {
+    body: {
+      recipientId: opts.recipientId ?? 'debug-placeholder',
+      title: opts.title ?? 'DEBUG Push Test',
+      body: opts.body ?? 'Test push z debugSendPush()',
+      debugSubscriptionId: opts.debugSubscriptionId,
+      debugOneSignalId: opts.debugOneSignalId,
+    },
+  });
+
+  if (error) {
+    console.error('[DebugPush] Error:', error);
+    return { error };
+  }
+
+  console.log('[DebugPush] Response:', JSON.stringify(data, null, 2));
+  return data;
+}
+
+// Expose debug function on window for console access
+if (typeof window !== 'undefined') {
+  (window as unknown as Record<string, unknown>).__debugSendPush = debugSendPush;
 }

@@ -9,6 +9,8 @@ import type { ReactNode } from 'react';
 import type { Session, User, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase/client';
 import type { UserProfile } from '@/types/database';
+import { logoutPushUser } from '@/features/notifications/services/pushService';
+
 
 // ─── Context Shape ───────────────────────────────────────
 
@@ -70,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Sign out
   const signOut = useCallback(async () => {
+    await logoutPushUser();
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);

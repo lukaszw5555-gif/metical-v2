@@ -1,10 +1,48 @@
+import { useState, useCallback } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
 import { useAuth } from '@/context/AuthContext';
-import { LogOut, User, Mail, Shield, Settings, CheckCircle } from 'lucide-react';
+import { LogOut, User, Mail, Shield, Settings, CheckCircle, Bell, Loader2, Info } from 'lucide-react';
 import { ROLE_LABELS } from '@/lib/constants';
+import {
+  initPush,
+  requestPushPermission,
+  loginPushUser,
+  getPushPermissionStatus,
+  type PushPermissionStatus,
+} from '@/features/notifications/services/pushService';
+
+// ─── Status Labels ───────────────────────────────────────
+
+const STATUS_LABEL: Record<PushPermissionStatus | 'idle', string> = {
+  idle: '',
+  granted: '✅ Powiadomienia włączone',
+  denied: '🚫 Powiadomienia odrzucone — zmień w ustawieniach przeglądarki',
+  default: '⏳ Oczekiwanie na zgodę…',
+  unavailable: '⚠️ Powiadomienia push niedostępne w tej przeglądarce',
+};
 
 export default function SettingsPage() {
-  const { profile, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
+
+  const [pushStatus, setPushStatus] = useState<PushPermissionStatus | 'idle'>('idle');
+  const [pushLoading, setPushLoading] = useState(false);
+
+  const handleEnablePush = useCallback(async () => {
+    if (!user) return;
+    setPushLoading(true);
+    try {
+      await initPush();
+      await requestPushPermission();
+      await loginPushUser(user.id);
+      const status = await getPushPermissionStatus();
+      setPushStatus(status);
+    } catch (err) {
+      console.error('[Settings] Push setup failed:', err);
+      setPushStatus('unavailable');
+    } finally {
+      setPushLoading(false);
+    }
+  }, [user]);
 
   return (
     <>
@@ -60,6 +98,61 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
+
+        {/* ─── Push Notifications Section ──────────────────────── */}
+        <div className="card p-5 space-y-4" id="push-notifications-section">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center shrink-0">
+              <Bell size={20} className="text-primary-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">Powiadomienia push</h3>
+              <p className="text-xs text-muted-500">Otrzymuj powiadomienia o nowych zadaniach</p>
+            </div>
+          </div>
+
+          <button
+            id="enable-push-btn"
+            onClick={handleEnablePush}
+            disabled={pushLoading || pushStatus === 'granted'}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl
+                       bg-primary-600 text-white text-sm font-semibold
+                       hover:bg-primary-700 active:bg-primary-800
+                       disabled:opacity-50 disabled:cursor-not-allowed
+                       transition-colors"
+          >
+            {pushLoading ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                Konfigurowanie…
+              </>
+            ) : pushStatus === 'granted' ? (
+              <>
+                <CheckCircle size={18} />
+                Powiadomienia włączone
+              </>
+            ) : (
+              <>
+                <Bell size={18} />
+                Włącz powiadomienia push
+              </>
+            )}
+          </button>
+
+          {/* Status message */}
+          {pushStatus !== 'idle' && (
+            <p className="text-xs text-center text-muted-500">{STATUS_LABEL[pushStatus]}</p>
+          )}
+
+          {/* iPhone hint */}
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200">
+            <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-800 leading-relaxed">
+              Na iPhone powiadomienia push działają po dodaniu aplikacji do ekranu
+              początkowego i uruchomieniu jej z ikony.
+            </p>
+          </div>
+        </div>
 
         {/* Sign out */}
         <button

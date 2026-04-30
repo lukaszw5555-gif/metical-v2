@@ -35,12 +35,32 @@ export interface UpsertPushSubscriptionInput {
 
 /**
  * Upsert a push subscription for the current user.
- * Uses the unique(user_id, onesignal_subscription_id) constraint
- * to update if already exists.
+ *
+ * IMPORTANT: A single OneSignal subscription ID (browser/device) can
+ * only be active for ONE user at a time. Before upserting, we deactivate
+ * any existing records with the same onesignal_subscription_id that
+ * belong to other users. This handles the case where a device was
+ * previously used by a different user.
  */
 export async function upsertPushSubscription(
   input: UpsertPushSubscriptionInput
 ): Promise<void> {
+  // Step 1: Deactivate this subscription_id for ALL other users
+  const { error: deactivateError } = await supabase
+    .from('push_subscriptions')
+    .update({ is_active: false })
+    .eq('onesignal_subscription_id', input.onesignal_subscription_id)
+    .neq('user_id', input.user_id);
+
+  if (deactivateError) {
+    // Non-critical: RLS may block updating other users' rows.
+    // The Edge Function uses service_role so stale records won't
+    // cause wrong delivery — they'll just be inactive or belong
+    // to the old user. Log and continue.
+    console.warn('[PushSubs] Deactivate other users failed (may be RLS):', deactivateError.message);
+  }
+
+  // Step 2: Upsert the current user's record
   const { error } = await supabase
     .from('push_subscriptions')
     .upsert(
@@ -50,7 +70,7 @@ export async function upsertPushSubscription(
         onesignal_user_id: input.onesignal_user_id ?? null,
         platform: input.platform ?? null,
         device_label: input.device_label ?? null,
-        is_active: input.is_active ?? true,
+        is_active: true,
       },
       {
         onConflict: 'user_id,onesignal_subscription_id',

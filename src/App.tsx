@@ -28,6 +28,7 @@ import ClientDetailPage from '@/features/clients/pages/ClientDetailPage';
 import PvOffersPage from '@/features/offers/pv/pages/PvOffersPage';
 import PvOfferFormPage from '@/features/offers/pv/pages/PvOfferFormPage';
 import PvOfferDetailPage from '@/features/offers/pv/pages/PvOfferDetailPage';
+import PvComponentsPage from '@/features/offers/pv/pages/PvComponentsPage';
 
 export default function App() {
   return (
@@ -72,6 +73,7 @@ export default function App() {
 
               {/* Settings */}
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/settings/pv-components" element={<PvComponentsPage />} />
 
               {/* Default redirect */}
               <Route path="/" element={<Navigate to="/tasks" replace />} />

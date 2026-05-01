@@ -182,6 +182,21 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* ─── PV Components Catalog ───────────────────────── */}
+        <button
+          onClick={() => navigate('/settings/pv-components')}
+          className="card w-full p-4 flex items-center gap-4 text-left hover:bg-surface-50 transition-colors group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-amber-50 group-hover:bg-amber-100 flex items-center justify-center shrink-0 transition-colors">
+            <Settings size={20} className="text-amber-600" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-gray-900">Katalog komponentów PV</p>
+            <p className="text-xs text-muted-500">Zarządzaj produktami PV, import/export CSV</p>
+          </div>
+          <ChevronRight size={18} className="text-muted-400 shrink-0" />
+        </button>
+
         {/* ─── Archive Link ──────────────────────────────── */}
         <button
           onClick={() => navigate('/tasks/archived')}

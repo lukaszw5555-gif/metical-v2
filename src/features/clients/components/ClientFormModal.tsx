@@ -38,16 +38,16 @@ export default function ClientFormModal({ onSubmit, onClose, profiles }: Props) 
   const activeProfiles = profiles.filter(p => p.is_active);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-lg bg-white rounded-t-2xl shadow-xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom"
+    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-lg bg-white rounded-t-2xl shadow-xl max-h-[90dvh] flex flex-col animate-in slide-in-from-bottom"
         onClick={(e) => e.stopPropagation()}>
-        <div className="sticky top-0 bg-white z-10 flex items-center gap-3 p-4 border-b border-surface-100">
+        <div className="sticky top-0 bg-white z-10 flex items-center gap-3 p-4 border-b border-surface-100 shrink-0 rounded-t-2xl">
           <h2 className="text-base font-bold text-gray-900 flex-1">Nowy klient</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-lg bg-surface-100 flex items-center justify-center">
             <X size={16} className="text-muted-500" />
           </button>
         </div>
-        <div className="p-4 space-y-3">
+        <div className="p-4 space-y-3 overflow-y-auto flex-1 pb-6">
           {error && <p className="text-xs text-red-600 bg-red-50 p-2 rounded-lg">{error}</p>}
           <div>
             <label className="block text-[11px] text-muted-400 mb-1">Imię i nazwisko *</label>
@@ -91,6 +91,8 @@ export default function ClientFormModal({ onSubmit, onClose, profiles }: Props) 
             <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}
               rows={2} className={`${ic} resize-none`} />
           </div>
+        </div>
+        <div className="sticky bottom-0 bg-white p-4 border-t border-surface-100 pb-[calc(1rem+env(safe-area-inset-bottom))] shrink-0 z-10">
           <button onClick={handle} disabled={submitting}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 active:scale-[0.98] transition-all disabled:opacity-60">
             {submitting ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}

@@ -299,24 +299,24 @@ export default function TasksPage() {
       <PageHeader title="Zadania" />
       <div className="px-4 py-4 mx-auto max-w-lg pb-24">
         {/* ─── Category Tabs ──────────────────────────────── */}
-        <div className="flex gap-1 bg-surface-100 p-1 rounded-xl mb-3">
+        <div className="flex gap-1 bg-surface-200/60 p-1 rounded-xl mb-3">
           {categories.map((c) => (
             <button
               key={c.key}
               onClick={() => setCategory(c.key)}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                 category === c.key
                   ? 'bg-white text-primary-700 shadow-sm'
-                  : 'text-muted-500 hover:text-muted-700'
+                  : 'text-muted-500 hover:text-gray-700'
               }`}
             >
               {c.label}
               {c.count > 0 && (
                 <span
-                  className={`min-w-[18px] h-[18px] inline-flex items-center justify-center px-1 text-[10px] font-bold rounded-full leading-none ${
+                  className={`min-w-[20px] h-[20px] inline-flex items-center justify-center px-1.5 text-[10px] font-bold rounded-full leading-none ${
                     category === c.key
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'bg-surface-200 text-muted-500'
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-surface-300 text-muted-600'
                   }`}
                 >
                   {c.count}
@@ -333,10 +333,10 @@ export default function TasksPage() {
               <button
                 key={f.key}
                 onClick={() => setSubFilter(f.key)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors ${
                   activeSubFilter === f.key
                     ? 'bg-primary-600 text-white shadow-sm'
-                    : 'bg-white text-muted-500 hover:bg-primary-50 hover:text-primary-600 border border-surface-200'
+                    : 'bg-white text-muted-600 hover:bg-primary-50 hover:text-primary-700 border border-surface-200'
                 }`}
               >
                 {f.label}

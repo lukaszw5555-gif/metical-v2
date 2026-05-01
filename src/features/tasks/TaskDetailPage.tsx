@@ -318,7 +318,7 @@ export default function TaskDetailPage() {
           ) : (
             <>
               <div className="flex items-start gap-2 mb-2">
-                <h1 className="text-lg font-bold text-slate-900 flex-1">{task.title}</h1>
+                <h1 className="text-lg font-bold text-gray-900 flex-1">{task.title}</h1>
                 {isAuthor && !isArchived && (
                   <button onClick={startEditing}
                     className="shrink-0 p-1.5 rounded-lg text-muted-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
@@ -328,7 +328,7 @@ export default function TaskDetailPage() {
                 )}
               </div>
               {task.description && (
-                <p className="text-sm text-muted-600 mb-3 whitespace-pre-wrap">{task.description}</p>
+                <p className="text-sm text-muted-500 mb-3 whitespace-pre-wrap">{task.description}</p>
               )}
             </>
           )}
@@ -351,7 +351,7 @@ export default function TaskDetailPage() {
               <Building2 size={14} className="text-primary-500" />
               <p className="text-[11px] font-medium text-muted-500 uppercase tracking-wide">Powiązana inwestycja</p>
             </div>
-            <p className="text-sm font-semibold text-slate-800">{linkedInvestment.name}</p>
+            <p className="text-sm font-semibold text-gray-900">{linkedInvestment.name}</p>
           </button>
         )}
 
@@ -443,10 +443,10 @@ export default function TaskDetailPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2 mb-0.5">
-                      <span className="text-sm font-semibold text-slate-800 truncate">{getProfileName(c.author_id)}</span>
+                      <span className="text-sm font-semibold text-gray-900 truncate">{getProfileName(c.author_id)}</span>
                       <span className="text-[11px] text-muted-400 shrink-0">{formatRelative(c.created_at)}</span>
                     </div>
-                    <p className="text-sm text-slate-700 whitespace-pre-wrap break-words">{c.body}</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">{c.body}</p>
                   </div>
                 </div>
               ))}
@@ -469,7 +469,7 @@ export default function TaskDetailPage() {
                 <div key={entry.id} className="flex items-start gap-2 py-1.5 border-b border-surface-50 last:border-0">
                   <div className="w-1.5 h-1.5 rounded-full bg-muted-300 shrink-0 mt-2" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs text-slate-700"><span className="font-medium">{getProfileName(entry.actor_id)}</span>{' · '}{getActivityLabel(entry)}</p>
+                    <p className="text-xs text-gray-700"><span className="font-medium">{getProfileName(entry.actor_id)}</span>{' · '}{getActivityLabel(entry)}</p>
                     {entry.body && <p className="text-[11px] text-muted-400 truncate mt-0.5">„{entry.body}"</p>}
                     <p className="text-[11px] text-muted-400">{formatRelative(entry.created_at)}</p>
                   </div>
@@ -494,7 +494,7 @@ function InfoRow({ icon, label, value, highlight = false }: {
       <div className="shrink-0">{icon}</div>
       <div className="min-w-0 flex-1">
         <p className="text-[11px] text-muted-400 leading-tight">{label}</p>
-        <p className={`text-sm font-medium truncate ${highlight ? 'text-red-600' : 'text-slate-800'}`}>{value}</p>
+        <p className={`text-sm font-medium truncate ${highlight ? 'text-red-600' : 'text-gray-900'}`}>{value}</p>
       </div>
     </div>
   );

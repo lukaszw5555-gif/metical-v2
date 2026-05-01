@@ -180,7 +180,7 @@ export default function InvestmentDetailPage() {
             </span>}
           </div>
 
-          <h1 className="text-lg font-bold text-slate-900 mb-3">{inv.name}</h1>
+          <h1 className="text-lg font-bold text-gray-900 mb-3">{inv.name}</h1>
 
           <div className="space-y-2.5 pt-3 border-t border-surface-100">
             <Row icon={<User size={16} className="text-primary-500" />} label="Klient" value={inv.client_name} />
@@ -200,7 +200,7 @@ export default function InvestmentDetailPage() {
               <Package size={16} className="text-primary-500" />
               <p className="text-xs font-medium text-muted-500 uppercase tracking-wide">Komponenty / notatki</p>
             </div>
-            <p className="text-sm text-slate-700 whitespace-pre-wrap">{inv.components_note}</p>
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{inv.components_note}</p>
           </div>
         )}
 
@@ -222,7 +222,7 @@ export default function InvestmentDetailPage() {
                   <button key={t.id} onClick={() => navigate(`/tasks/${t.id}`)}
                     className="w-full text-left p-3 bg-surface-50 rounded-xl hover:bg-surface-100 transition-colors">
                     <div className="flex items-start gap-2 mb-1">
-                      <span className="text-sm font-medium text-slate-800 flex-1 line-clamp-1">{t.title}</span>
+                      <span className="text-sm font-medium text-gray-900 flex-1 line-clamp-1">{t.title}</span>
                       {t.priority !== 'normalny' && (
                         <span className="shrink-0 px-1.5 py-0.5 text-[9px] font-bold uppercase rounded text-white"
                           style={{ backgroundColor: pc }}>{TASK_PRIORITY_LABELS[t.priority]}</span>
@@ -283,10 +283,10 @@ export default function InvestmentDetailPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2 mb-0.5">
-                      <span className="text-sm font-semibold text-slate-800 truncate">{profileName(c.author_id)}</span>
+                      <span className="text-sm font-semibold text-gray-900 truncate">{profileName(c.author_id)}</span>
                       <span className="text-[11px] text-muted-400 shrink-0">{fmtRel(c.created_at)}</span>
                     </div>
-                    <p className="text-sm text-slate-700 whitespace-pre-wrap break-words">{c.body}</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">{c.body}</p>
                   </div>
                 </div>
               ))}
@@ -317,7 +317,7 @@ export default function InvestmentDetailPage() {
                 <div key={e.id} className="flex items-start gap-2 py-1.5 border-b border-surface-50 last:border-0">
                   <div className="w-1.5 h-1.5 rounded-full bg-muted-300 shrink-0 mt-2" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs text-slate-700"><span className="font-medium">{profileName(e.actor_id)}</span> · {actLabel(e)}</p>
+                    <p className="text-xs text-gray-700"><span className="font-medium">{profileName(e.actor_id)}</span> · {actLabel(e)}</p>
                     {e.body && <p className="text-[11px] text-muted-400 truncate mt-0.5">„{e.body}"</p>}
                     <p className="text-[11px] text-muted-400">{fmtRel(e.created_at)}</p>
                   </div>
@@ -338,7 +338,7 @@ function Row({ icon, label, value }: { icon: React.ReactNode; label: string; val
       <div className="shrink-0">{icon}</div>
       <div className="min-w-0 flex-1">
         <p className="text-[11px] text-muted-400 leading-tight">{label}</p>
-        <p className="text-sm font-medium text-slate-800 truncate">{value}</p>
+        <p className="text-sm font-medium text-gray-900 truncate">{value}</p>
       </div>
     </div>
   );

@@ -87,7 +87,7 @@ export default function ArchivedTasksPage() {
                   className="card w-full p-4 text-left hover:bg-surface-50 transition-colors opacity-80"
                 >
                   {/* Title */}
-                  <h3 className="text-sm font-semibold text-slate-700 line-clamp-2 mb-1">
+                  <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-1">
                     {task.title}
                   </h3>
 
@@ -149,7 +149,7 @@ export default function ArchivedTasksPage() {
             <div className="w-16 h-16 rounded-2xl bg-surface-100 flex items-center justify-center mb-4">
               <Archive size={28} className="text-muted-400" />
             </div>
-            <h2 className="text-lg font-semibold text-slate-800 mb-1">
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">
               Archiwum puste
             </h2>
             <p className="text-sm text-muted-500 max-w-xs">

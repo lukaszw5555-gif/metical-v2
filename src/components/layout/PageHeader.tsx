@@ -34,7 +34,7 @@ export default function PageHeader({
   }, [showNotifications, location.pathname]);
 
   return (
-    <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-surface-200">
+    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-surface-200">
       <div className="mx-auto max-w-lg flex items-center justify-between h-14 px-4">
         {/* Left side */}
         <div className="flex items-center gap-3 min-w-0">
@@ -47,7 +47,7 @@ export default function PageHeader({
               <ArrowLeft size={20} />
             </button>
           )}
-          <h1 className="text-lg font-semibold text-slate-900 truncate">
+          <h1 className="text-lg font-bold text-gray-900 truncate">
             {title}
           </h1>
         </div>

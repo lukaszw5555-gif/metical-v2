@@ -25,10 +25,10 @@ export const TASK_STATUS_DISPLAY_LABELS: Record<TaskStatus, string> = {
 };
 
 export const TASK_STATUS_COLORS: Record<TaskStatus, string> = {
-  do_zrobienia: '#6366f1', // indigo
-  w_trakcie: '#f59e0b',   // amber
-  czeka: '#6366f1',        // indigo (same as do_zrobienia — both are "Nie rozpoczęto")
-  zrobione: '#22c55e',    // green
+  do_zrobienia: '#4f46e5', // indigo-600
+  w_trakcie: '#d97706',   // amber-700
+  czeka: '#4f46e5',        // indigo-600 (same as do_zrobienia)
+  zrobione: '#16a34a',    // green-600
 };
 
 export const TASK_STATUSES: TaskStatus[] = [
@@ -47,9 +47,9 @@ export const TASK_PRIORITY_LABELS: Record<TaskPriority, string> = {
 };
 
 export const TASK_PRIORITY_COLORS: Record<TaskPriority, string> = {
-  normalny: '#6b7280',   // gray
-  pilny: '#f59e0b',      // amber
-  krytyczny: '#ef4444',  // red
+  normalny: '#6b7280',   // gray-500
+  pilny: '#b45309',      // amber-800
+  krytyczny: '#b91c1c',  // red-700
 };
 
 export const TASK_PRIORITIES: TaskPriority[] = [
@@ -94,10 +94,10 @@ export const INVESTMENT_STATUS_LABELS: Record<InvestmentStatus, string> = {
 };
 
 export const INVESTMENT_STATUS_COLORS: Record<InvestmentStatus, string> = {
-  czeka_na_wplate: '#f59e0b', // amber
-  w_planowaniu: '#6366f1',   // indigo
-  w_realizacji: '#3b82f6',   // blue
-  zakonczona: '#22c55e',     // green
+  czeka_na_wplate: '#d97706', // amber-700
+  w_planowaniu: '#4f46e5',   // indigo-600
+  w_realizacji: '#2563eb',   // blue-600
+  zakonczona: '#16a34a',     // green-600
 };
 
 export const INVESTMENT_STATUSES: InvestmentStatus[] = [

@@ -94,7 +94,7 @@ export default function SettingsPage() {
                 </span>
               </div>
               <div className="min-w-0">
-                <h2 className="text-base font-semibold text-slate-900 truncate">
+                <h2 className="text-base font-semibold text-gray-900 truncate">
                   {profile.full_name || 'Brak imienia'}
                 </h2>
                 <p className="text-sm text-muted-500 truncate">{profile.email}</p>
@@ -134,7 +134,7 @@ export default function SettingsPage() {
               <Bell size={20} className="text-primary-600" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">Powiadomienia push</h3>
+              <h3 className="text-sm font-semibold text-gray-900">Powiadomienia push</h3>
               <p className="text-xs text-muted-500">Otrzymuj powiadomienia o nowych zadaniach</p>
             </div>
           </div>
@@ -191,7 +191,7 @@ export default function SettingsPage() {
             <Archive size={20} className="text-muted-500" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-slate-800">Archiwum zadań</p>
+            <p className="text-sm font-semibold text-gray-900">Archiwum zadań</p>
             <p className="text-xs text-muted-500">Przeglądaj zarchiwizowane zadania</p>
           </div>
           <ChevronRight size={18} className="text-muted-400 shrink-0" />
@@ -239,7 +239,7 @@ function ProfileRow({
       <div className="shrink-0">{icon}</div>
       <div className="min-w-0 flex-1">
         <p className="text-xs text-muted-400">{label}</p>
-        <p className="text-sm font-medium text-slate-800 truncate">{value}</p>
+        <p className="text-sm font-medium text-gray-900 truncate">{value}</p>
       </div>
     </div>
   );

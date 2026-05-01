@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/layout/PageHeader';
 import { useAuth } from '@/context/AuthContext';
-import { getInvestmentById, updateInvestmentStatus } from '@/features/investments/services/investmentsService';
+import { getInvestmentById, updateInvestmentStatus, updateInvestment } from '@/features/investments/services/investmentsService';
 import { getInvestmentComments, addInvestmentComment } from '@/features/investments/services/investmentCommentsService';
 import { getTasksByInvestmentId } from '@/features/tasks/services/tasksService';
 import { fetchInvestmentActivity, logActivity } from '@/features/activity/services/activityLogService';
@@ -13,12 +13,12 @@ import { sendPushNotification } from '@/features/notifications/services/pushSend
 import type { Investment, InvestmentStatus, InvestmentComment, ActivityLogEntry, UserProfile, Task } from '@/types/database';
 import {
   INVESTMENT_STATUS_LABELS, INVESTMENT_STATUS_COLORS, INVESTMENT_STATUSES,
-  INVESTMENT_TYPE_LABELS, TASK_STATUS_DISPLAY_LABELS, TASK_STATUS_COLORS,
+  INVESTMENT_TYPE_LABELS, INVESTMENT_TYPES, TASK_STATUS_DISPLAY_LABELS, TASK_STATUS_COLORS,
   TASK_PRIORITY_LABELS, TASK_PRIORITY_COLORS,
 } from '@/lib/constants';
 import {
   Loader2, AlertCircle, MapPin, User, Phone, Mail, Clock, Banknote,
-  Send, MessageSquare, History, ChevronDown, ChevronUp, Package, ClipboardCheck,
+  Send, MessageSquare, History, ChevronDown, ChevronUp, Package, ClipboardCheck, Pencil, X, Check,
 } from 'lucide-react';
 
 export default function InvestmentDetailPage() {
@@ -39,6 +39,14 @@ export default function InvestmentDetailPage() {
   const [commentBody, setCommentBody] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
+
+  // Edit state
+  const [editing, setEditing] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '', client_name: '', client_phone: '', client_email: '',
+    investment_address: '', investment_type: '', deposit_paid: false, components_note: '',
+  });
 
   const loadAll = useCallback(async () => {
     if (!id) return;
@@ -140,6 +148,70 @@ export default function InvestmentDetailPage() {
     } finally { setSubmittingComment(false); }
   };
 
+  // ─── Edit investment ──────────────────────────────────
+
+  const canEdit = inv !== null && (inv.created_by === userId || authProfile?.role === 'admin');
+
+  const startEditing = () => {
+    if (!inv) return;
+    setEditForm({
+      name: inv.name,
+      client_name: inv.client_name,
+      client_phone: inv.client_phone || '',
+      client_email: inv.client_email || '',
+      investment_address: inv.investment_address || '',
+      investment_type: inv.investment_type,
+      deposit_paid: inv.deposit_paid,
+      components_note: inv.components_note || '',
+    });
+    setEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!inv) return;
+    if (!editForm.name.trim() || !editForm.client_name.trim()) {
+      setError('Nazwa inwestycji i klient są wymagane.');
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const updated = await updateInvestment(inv.id, {
+        name: editForm.name.trim(),
+        client_name: editForm.client_name.trim(),
+        client_phone: editForm.client_phone.trim() || null,
+        client_email: editForm.client_email.trim() || null,
+        investment_address: editForm.investment_address.trim() || null,
+        investment_type: editForm.investment_type,
+        deposit_paid: editForm.deposit_paid,
+        components_note: editForm.components_note.trim() || null,
+      });
+      setInv(updated);
+      setEditing(false);
+      await logActivity(userId, {
+        event_type: 'investment_edited', entity_type: 'investment',
+        entity_id: inv.id, investment_id: inv.id, metadata: {},
+      });
+
+      // Notify others
+      const others = profiles.filter((p) => p.id !== userId && p.is_active);
+      for (const p of others) {
+        await createNotification({
+          recipient_id: p.id, type: 'investment_edited',
+          title: `${actorName} edytował(a) dane inwestycji`,
+          body: updated.name, investment_id: inv.id,
+        });
+        sendPushNotification({
+          recipientId: p.id, title: `${actorName} edytował(a) dane inwestycji`,
+          body: updated.name, url: `/investments/${inv.id}`, priority: 'normal',
+        });
+      }
+
+      await refreshSections();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Błąd zapisu');
+    } finally { setSavingEdit(false); }
+  };
+
   // Helpers
   const profileName = (pid: string | null) => {
     if (!pid) return '—';
@@ -219,20 +291,83 @@ export default function InvestmentDetailPage() {
             {inv.deposit_paid && <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-green-50 text-green-600">
               <Banknote size={12} />Zaliczka
             </span>}
+            {!inv.deposit_paid && <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-surface-100 text-muted-500">
+              Brak zaliczki
+            </span>}
           </div>
 
-          <h1 className="text-lg font-bold text-gray-900 mb-3">{inv.name}</h1>
-
-          {/* Details */}
-          <div className="space-y-2.5 pt-3 border-t border-surface-100">
-            <Row icon={<User size={16} className="text-primary-500" />} label="Klient" value={inv.client_name} />
-            {inv.client_phone && <Row icon={<Phone size={16} className="text-muted-400" />} label="Telefon" value={inv.client_phone} />}
-            {inv.client_email && <Row icon={<Mail size={16} className="text-muted-400" />} label="E-mail" value={inv.client_email} />}
-            {inv.investment_address && <Row icon={<MapPin size={16} className="text-muted-400" />} label="Adres" value={inv.investment_address} />}
-            <Row icon={<User size={16} className="text-muted-400" />} label="Utworzone przez" value={profileName(inv.created_by)} />
-            <Row icon={<Clock size={16} className="text-muted-400" />} label="Utworzono" value={fmtDT(inv.created_at)} />
-            <Row icon={<Clock size={16} className="text-muted-400" />} label="Ostatnia zmiana" value={fmtDT(inv.updated_at)} />
+          {/* Title + edit button */}
+          <div className="flex items-start gap-2 mb-3">
+            <h1 className="text-lg font-bold text-gray-900 flex-1">{inv.name}</h1>
+            {canEdit && !editing && (
+              <button onClick={startEditing}
+                className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-primary-600 bg-primary-50 hover:bg-primary-100 transition-colors">
+                <Pencil size={12} />Edytuj
+              </button>
+            )}
           </div>
+
+          {/* Edit form OR readonly details */}
+          {editing ? (
+            <div className="space-y-3 pt-3 border-t border-surface-100">
+              <EditField label="Nazwa inwestycji *" value={editForm.name}
+                onChange={(v) => setEditForm({ ...editForm, name: v })} disabled={savingEdit} />
+              <EditField label="Klient *" value={editForm.client_name}
+                onChange={(v) => setEditForm({ ...editForm, client_name: v })} disabled={savingEdit} />
+              <div className="grid grid-cols-2 gap-2">
+                <EditField label="Telefon" value={editForm.client_phone}
+                  onChange={(v) => setEditForm({ ...editForm, client_phone: v })} disabled={savingEdit} type="tel" />
+                <EditField label="E-mail" value={editForm.client_email}
+                  onChange={(v) => setEditForm({ ...editForm, client_email: v })} disabled={savingEdit} type="email" />
+              </div>
+              <EditField label="Adres inwestycji" value={editForm.investment_address}
+                onChange={(v) => setEditForm({ ...editForm, investment_address: v })} disabled={savingEdit} />
+              <div>
+                <label className="block text-[11px] text-muted-400 mb-1">Typ</label>
+                <select value={editForm.investment_type}
+                  onChange={(e) => setEditForm({ ...editForm, investment_type: e.target.value })}
+                  disabled={savingEdit}
+                  className="w-full px-3 py-2 border border-surface-200 rounded-xl text-sm bg-surface-50 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500">
+                  {INVESTMENT_TYPES.map((t) => <option key={t} value={t}>{INVESTMENT_TYPE_LABELS[t]}</option>)}
+                </select>
+              </div>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" checked={editForm.deposit_paid}
+                  onChange={(e) => setEditForm({ ...editForm, deposit_paid: e.target.checked })}
+                  disabled={savingEdit}
+                  className="w-5 h-5 rounded-lg border-surface-300 text-primary-600 focus:ring-primary-500/30" />
+                <span className="text-sm font-medium text-gray-700">Zaliczka wpłacona</span>
+              </label>
+              <div>
+                <label className="block text-[11px] text-muted-400 mb-1">Notatki / komponenty</label>
+                <textarea value={editForm.components_note}
+                  onChange={(e) => setEditForm({ ...editForm, components_note: e.target.value })}
+                  rows={3} disabled={savingEdit}
+                  className="w-full px-3 py-2 border border-surface-200 rounded-xl text-sm bg-surface-50 resize-none focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500" />
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button onClick={handleSaveEdit} disabled={savingEdit}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 active:scale-[0.98] transition-all disabled:opacity-60">
+                  {savingEdit ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+                  {savingEdit ? 'Zapisywanie...' : 'Zapisz'}
+                </button>
+                <button onClick={() => setEditing(false)} disabled={savingEdit}
+                  className="px-4 py-2.5 bg-surface-100 text-muted-600 text-sm font-semibold rounded-xl hover:bg-surface-200 transition-colors disabled:opacity-60">
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2.5 pt-3 border-t border-surface-100">
+              <Row icon={<User size={16} className="text-primary-500" />} label="Klient" value={inv.client_name} />
+              {inv.client_phone && <Row icon={<Phone size={16} className="text-muted-400" />} label="Telefon" value={inv.client_phone} />}
+              {inv.client_email && <Row icon={<Mail size={16} className="text-muted-400" />} label="E-mail" value={inv.client_email} />}
+              {inv.investment_address && <Row icon={<MapPin size={16} className="text-muted-400" />} label="Adres" value={inv.investment_address} />}
+              <Row icon={<User size={16} className="text-muted-400" />} label="Utworzone przez" value={profileName(inv.created_by)} />
+              <Row icon={<Clock size={16} className="text-muted-400" />} label="Utworzono" value={fmtDT(inv.created_at)} />
+              <Row icon={<Clock size={16} className="text-muted-400" />} label="Ostatnia zmiana" value={fmtDT(inv.updated_at)} />
+            </div>
+          )}
 
           {/* Compact status changer — inline in info card */}
           <div className="mt-4 pt-3 border-t border-surface-100">
@@ -392,6 +527,19 @@ function Row({ icon, label, value }: { icon: React.ReactNode; label: string; val
         <p className="text-[11px] text-muted-400 leading-tight">{label}</p>
         <p className="text-sm font-medium text-gray-900 truncate">{value}</p>
       </div>
+    </div>
+  );
+}
+
+function EditField({ label, value, onChange, disabled, type = 'text' }: {
+  label: string; value: string; onChange: (v: string) => void; disabled: boolean; type?: string;
+}) {
+  return (
+    <div>
+      <label className="block text-[11px] text-muted-400 mb-1">{label}</label>
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        className="w-full px-3 py-2 border border-surface-200 rounded-xl text-sm bg-surface-50 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500 transition-colors" />
     </div>
   );
 }

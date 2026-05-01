@@ -55,6 +55,13 @@ export default function LeadDetailPage() {
   const [activity, setActivity] = useState<LeadActivityEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
 
+  // Modals state
+  const [showFollowUpModal, setShowFollowUpModal] = useState(false);
+  const [showConvertConfirm, setShowConvertConfirm] = useState(false);
+  const [fuModalDate, setFuModalDate] = useState('');
+  const [fuModalNote, setFuModalNote] = useState('');
+  const [fuModalError, setFuModalError] = useState<string | null>(null);
+
   // Conversion state
   const [converting, setConverting] = useState(false);
 
@@ -93,11 +100,45 @@ export default function LeadDetailPage() {
   // Status change
   const handleStatus = async (s: SalesLeadStatus) => {
     if (!lead || lead.status === s) return;
+    if (s === 'follow_up') {
+      setFuModalDate(lead.next_follow_up_at ? new Date(lead.next_follow_up_at).toISOString().slice(0, 16) : '');
+      setFuModalNote(lead.follow_up_note || '');
+      setFuModalError(null);
+      setShowFollowUpModal(true);
+      setShowStatusPanel(false);
+      return;
+    }
     const oldLabel = LEAD_STATUS_LABELS[lead.status];
     setUpdatingStatus(s);
     try {
       setLead(await updateLeadStatus(lead.id, s));
       await logLeadActivity(lead.id, userId, 'lead_status_changed', `Zmieniono status z ${oldLabel} na ${LEAD_STATUS_LABELS[s]}`);
+      await refreshLead();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Błąd zmiany statusu');
+    } finally { setUpdatingStatus(null); }
+  };
+
+  const handleFollowUpModalSave = async () => {
+    if (!lead) return;
+    if (!fuModalDate || !fuModalNote.trim()) {
+      setFuModalError('Uzupełnij datę i notatkę follow-up.');
+      return;
+    }
+    setUpdatingStatus('follow_up');
+    setShowFollowUpModal(false);
+    try {
+      const updated = await updateLead(lead.id, {
+        status: 'follow_up',
+        next_follow_up_at: new Date(fuModalDate).toISOString(),
+        follow_up_note: fuModalNote.trim(),
+      });
+      setLead(updated);
+      
+      const dateLabel = new Date(fuModalDate).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      await logLeadActivity(lead.id, userId, 'lead_status_changed', `Zmieniono status na Follow-up`);
+      await logLeadActivity(lead.id, userId, 'lead_followup_changed', `Ustawiono follow-up: ${dateLabel} — ${fuModalNote.trim()}`);
+      
       await refreshLead();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Błąd zmiany statusu');
@@ -203,9 +244,14 @@ export default function LeadDetailPage() {
   };
 
   // Convert lead → client
-  const handleConvert = async () => {
+  const handleConvert = () => {
+    setShowConvertConfirm(true);
+  };
+
+  const confirmConvert = async () => {
     if (!lead) return;
     setConverting(true);
+    setShowConvertConfirm(false);
     try {
       const notes = [lead.qualification_note, lead.follow_up_note].filter(Boolean).join('\n');
       const newClient = await createClient({
@@ -223,6 +269,7 @@ export default function LeadDetailPage() {
       // Set status to won if not already
       if (lead.status !== 'won') {
         await updateLeadStatus(lead.id, 'won');
+        await logLeadActivity(lead.id, userId, 'lead_status_changed', 'Zmieniono status na Wygrany przy tworzeniu karty klienta');
       }
       await logLeadActivity(lead.id, userId, 'lead_updated', 'Utworzono kartę klienta');
       navigate(`/clients/${newClient.id}`);
@@ -537,6 +584,66 @@ export default function LeadDetailPage() {
           )}
         </div>
       </div>
+
+      {/* ─── Modals ────────────────────────────────────── */}
+      {showFollowUpModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowFollowUpModal(false)}>
+          <div className="w-full max-w-lg bg-white rounded-t-2xl shadow-xl max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom"
+            onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white z-10 flex items-center gap-3 p-4 border-b border-surface-100">
+              <h2 className="text-base font-bold text-gray-900 flex-1">Ustaw follow-up</h2>
+              <button onClick={() => setShowFollowUpModal(false)} className="w-8 h-8 rounded-lg bg-surface-100 flex items-center justify-center">
+                <X size={16} className="text-muted-500" />
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              {fuModalError && <p className="text-xs text-red-600 bg-red-50 p-2 rounded-lg">{fuModalError}</p>}
+              <div>
+                <label className="block text-[11px] text-muted-400 mb-1">Data i godzina *</label>
+                <input type="datetime-local" value={fuModalDate} onChange={(e) => setFuModalDate(e.target.value)}
+                  className={ic} />
+              </div>
+              <div>
+                <label className="block text-[11px] text-muted-400 mb-1">Notatka *</label>
+                <textarea value={fuModalNote} onChange={(e) => setFuModalNote(e.target.value)}
+                  rows={2} className={`${ic} resize-none`} placeholder="Np. Zadzwonić po decyzji..." />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button onClick={handleFollowUpModalSave}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 active:scale-[0.98] transition-all">
+                  <Check size={16} /> Zapisz
+                </button>
+                <button onClick={() => setShowFollowUpModal(false)}
+                  className="px-4 py-2.5 bg-surface-100 text-muted-600 text-sm font-semibold rounded-xl hover:bg-surface-200 transition-colors">
+                  Anuluj
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showConvertConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={() => setShowConvertConfirm(false)}>
+          <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl animate-in zoom-in-95 p-5" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Utworzyć kartę klienta?</h3>
+            <p className="text-sm text-muted-500 mb-6">
+              Lead zostanie oznaczony jako Wygrany i zostanie utworzona karta klienta. Tej akcji nie należy używać, jeśli klient nie potwierdził współpracy.
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setShowConvertConfirm(false)}
+                className="flex-1 px-4 py-2 bg-surface-100 text-muted-600 text-sm font-semibold rounded-xl hover:bg-surface-200 transition-colors">
+                Anuluj
+              </button>
+              <button onClick={confirmConvert} disabled={converting}
+                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-xl hover:bg-green-700 active:scale-[0.98] transition-all disabled:opacity-60">
+                {converting ? <Loader2 size={16} className="animate-spin" /> : <UserPlus size={16} />}
+                Utwórz klienta
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

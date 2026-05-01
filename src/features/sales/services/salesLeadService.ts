@@ -77,6 +77,7 @@ export interface UpdateLeadInput {
   follow_up_note?: string | null;
   is_favorite?: boolean;
   converted_client_id?: string | null;
+  status?: SalesLeadStatus;
 }
 
 export async function updateLead(id: string, input: UpdateLeadInput): Promise<SalesLead> {

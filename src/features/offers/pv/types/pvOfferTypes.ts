@@ -66,6 +66,70 @@ export interface CreatePvOfferInput {
 
 export type UpdatePvOfferInput = Partial<CreatePvOfferInput>;
 
+// ─── PV Offer Item Types ─────────────────────────────────
+
+export interface PvOfferItem {
+  id: string;
+  offer_id: string;
+  component_id: string | null;
+  category: string;
+  manufacturer: string | null;
+  model: string | null;
+  trade_name: string;
+  unit: string;
+  quantity: number;
+  purchase_price: number;
+  selling_price: number;
+  vat_rate: number;
+  power_w: number | null;
+  capacity_kwh: number | null;
+  notes: string | null;
+  is_custom: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreatePvOfferItemInput {
+  offer_id: string;
+  component_id?: string | null;
+  category: string;
+  manufacturer?: string | null;
+  model?: string | null;
+  trade_name: string;
+  unit?: string;
+  quantity?: number;
+  purchase_price?: number;
+  selling_price?: number;
+  vat_rate?: number;
+  power_w?: number | null;
+  capacity_kwh?: number | null;
+  notes?: string | null;
+  is_custom?: boolean;
+  sort_order?: number;
+}
+
+// ─── Local item (for form state, before save) ────────────
+
+export interface PvOfferItemDraft {
+  _key: string; // local key for React rendering
+  component_id: string | null;
+  category: string;
+  manufacturer: string | null;
+  model: string | null;
+  trade_name: string;
+  unit: string;
+  quantity: number;
+  purchase_price: number;
+  selling_price: number;
+  vat_rate: number;
+  power_w: number | null;
+  capacity_kwh: number | null;
+  notes: string | null;
+  is_custom: boolean;
+  sort_order: number;
+}
+
 // ─── Constants ───────────────────────────────────────────
 
 export const PV_OFFER_STATUSES: PvOfferStatus[] = ['draft', 'sent', 'accepted', 'rejected'];

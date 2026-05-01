@@ -4,6 +4,9 @@ import type {
   InvestmentType,
   InvestmentStatus,
   UserRole,
+  SalesLeadStatus,
+  SalesLeadSource,
+  SalesServiceType,
 } from '@/types/database';
 
 // ─── Task Status ─────────────────────────────────────────
@@ -122,3 +125,57 @@ export const OVERDUE_THRESHOLD_HOURS = 24;
 
 /** Hours without activity before a "czeka" task is considered overdue */
 export const OVERDUE_THRESHOLD_WAITING_HOURS = 48;
+
+// ─── Sales Lead Status ──────────────────────────────────
+
+export const LEAD_STATUS_LABELS: Record<SalesLeadStatus, string> = {
+  new: 'Nowy Lead',
+  follow_up: 'Follow-up',
+  offered: 'Zaofertowany',
+  won: 'Wygrany',
+  lost: 'Przegrany',
+};
+
+export const LEAD_STATUS_COLORS: Record<SalesLeadStatus, string> = {
+  new: '#6366f1',      // indigo-500
+  follow_up: '#d97706', // amber-600
+  offered: '#2563eb',   // blue-600
+  won: '#16a34a',       // green-600
+  lost: '#dc2626',      // red-600
+};
+
+export const LEAD_STATUSES: SalesLeadStatus[] = [
+  'new', 'follow_up', 'offered', 'won', 'lost',
+];
+
+// ─── Sales Lead Source ──────────────────────────────────
+
+export const LEAD_SOURCE_LABELS: Record<SalesLeadSource, string> = {
+  website: 'Strona internetowa',
+  facebook_ads: 'Facebook Ads',
+  manual: 'Ręcznie dodany',
+};
+
+export const LEAD_SOURCES: SalesLeadSource[] = [
+  'website', 'facebook_ads', 'manual',
+];
+
+// ─── Sales Service Type ─────────────────────────────────
+
+export const LEAD_SERVICE_TYPE_LABELS: Record<SalesServiceType, string> = {
+  pv: 'PV',
+  pv_magazyn: 'PV + magazyn energii',
+  magazyn: 'Magazyn energii',
+  pompa_ciepla: 'Pompa ciepła',
+  hydraulika: 'Hydraulika',
+  elektryka: 'Elektryka',
+  hala: 'Hala stalowa',
+  dom: 'Dom stalowy',
+  kompleksowa_usluga: 'Kompleksowa usługa',
+  inne: 'Inne',
+};
+
+export const LEAD_SERVICE_TYPES: SalesServiceType[] = [
+  'pv', 'pv_magazyn', 'magazyn', 'pompa_ciepla', 'hydraulika',
+  'elektryka', 'hala', 'dom', 'kompleksowa_usluga', 'inne',
+];

@@ -13,9 +13,15 @@ import InvestmentDetailPage from '@/features/investments/InvestmentDetailPage';
 import NotificationsPage from '@/features/notifications/NotificationsPage';
 import SettingsPage from '@/features/settings/SettingsPage';
 
+// Sales pages
+import SalesDashboardPage from '@/features/sales/pages/SalesDashboardPage';
+import LeadsPage from '@/features/sales/pages/LeadsPage';
+import LeadDetailPage from '@/features/sales/pages/LeadDetailPage';
+import FollowUpPage from '@/features/sales/pages/FollowUpPage';
+import OffersPage from '@/features/sales/pages/OffersPage';
+
 // Placeholder pages
 import ClientsPage from '@/pages/ClientsPage';
-import SalesPage from '@/pages/SalesPage';
 
 export default function App() {
   return (
@@ -43,7 +49,13 @@ export default function App() {
 
               {/* Placeholders */}
               <Route path="/clients" element={<ClientsPage />} />
-              <Route path="/sales" element={<SalesPage />} />
+
+              {/* Sales */}
+              <Route path="/sales" element={<SalesDashboardPage />} />
+              <Route path="/sales/leads" element={<LeadsPage />} />
+              <Route path="/sales/leads/:id" element={<LeadDetailPage />} />
+              <Route path="/sales/followup" element={<FollowUpPage />} />
+              <Route path="/sales/offers" element={<OffersPage />} />
 
               {/* Settings */}
               <Route path="/settings" element={<SettingsPage />} />

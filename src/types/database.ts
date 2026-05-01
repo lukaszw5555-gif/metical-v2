@@ -162,3 +162,52 @@ export interface ActivityLogEntry {
   metadata: Record<string, unknown>;
   created_at: string;
 }
+
+// ─── Sales Lead ──────────────────────────────────────────
+
+export type SalesLeadStatus = 'new' | 'follow_up' | 'offered' | 'won' | 'lost';
+
+export type SalesLeadSource = 'website' | 'facebook_ads' | 'manual';
+
+export type SalesServiceType =
+  | 'pv'
+  | 'pv_magazyn'
+  | 'magazyn'
+  | 'pompa_ciepla'
+  | 'hydraulika'
+  | 'elektryka'
+  | 'hala'
+  | 'dom'
+  | 'kompleksowa_usluga'
+  | 'inne';
+
+export interface SalesLead {
+  id: string;
+  full_name: string;
+  phone: string;
+  email: string | null;
+  city: string | null;
+  source: SalesLeadSource;
+  service_type: SalesServiceType | null;
+  qualification_note: string | null;
+  status: SalesLeadStatus;
+  is_favorite: boolean;
+  primary_assigned_to: string | null;
+  secondary_assigned_to: string | null;
+  created_by: string;
+  next_follow_up_at: string | null;
+  follow_up_note: string | null;
+  converted_client_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─── Lead Comment ────────────────────────────────────────
+
+export interface LeadComment {
+  id: string;
+  lead_id: string;
+  author_id: string;
+  body: string;
+  created_at: string;
+}

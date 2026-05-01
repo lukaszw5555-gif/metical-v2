@@ -20,6 +20,7 @@ export default function ClientsPage() {
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<'all' | 'manual' | 'lead'>('all');
 
   const load = useCallback(async () => {
     try {
@@ -33,15 +34,19 @@ export default function ClientsPage() {
   useEffect(() => { load(); }, [load]);
 
   const filtered = useMemo(() => {
-    if (!search.trim()) return clients;
+    let result = clients;
+    if (filter === 'manual') result = result.filter(c => !c.created_from_lead_id);
+    else if (filter === 'lead') result = result.filter(c => !!c.created_from_lead_id);
+
+    if (!search.trim()) return result;
     const q = search.toLowerCase();
-    return clients.filter(c =>
+    return result.filter(c =>
       c.full_name.toLowerCase().includes(q) ||
       (c.phone && c.phone.includes(q)) ||
       (c.email && c.email.toLowerCase().includes(q)) ||
       (c.city && c.city.toLowerCase().includes(q))
     );
-  }, [clients, search]);
+  }, [clients, search, filter]);
 
   const handleCreate = async (d: ClientFormData) => {
     await createClient({
@@ -63,6 +68,22 @@ export default function ClientsPage() {
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Szukaj po nazwisku, telefonie, email, mieście..."
             className="w-full pl-9 pr-4 py-2.5 border border-surface-200 rounded-xl text-sm bg-surface-50 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500" />
+        </div>
+
+        {/* Filter */}
+        <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1 hide-scrollbar">
+          <button onClick={() => setFilter('all')}
+            className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${filter === 'all' ? 'bg-primary-600 text-white' : 'bg-surface-100 text-muted-600 hover:bg-surface-200'}`}>
+            Wszyscy
+          </button>
+          <button onClick={() => setFilter('manual')}
+            className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${filter === 'manual' ? 'bg-primary-600 text-white' : 'bg-surface-100 text-muted-600 hover:bg-surface-200'}`}>
+            Ręcznie dodani
+          </button>
+          <button onClick={() => setFilter('lead')}
+            className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${filter === 'lead' ? 'bg-primary-600 text-white' : 'bg-surface-100 text-muted-600 hover:bg-surface-200'}`}>
+            Z leadów
+          </button>
         </div>
 
         {loading && (

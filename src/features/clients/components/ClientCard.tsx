@@ -14,9 +14,13 @@ export default function ClientCard({ client, profiles }: Props) {
       className="card w-full p-4 text-left hover:bg-surface-50 transition-colors">
       <div className="flex items-start gap-2 mb-2">
         <h3 className="text-sm font-bold text-gray-900 flex-1 line-clamp-1">{client.full_name}</h3>
-        {client.created_from_lead_id && (
+        {client.created_from_lead_id ? (
           <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-green-50 text-green-600">
-            <Link2 size={9} />z leada
+            <Link2 size={9} />Z leada
+          </span>
+        ) : (
+          <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-blue-50 text-blue-600">
+            Ręcznie
           </span>
         )}
       </div>

@@ -11,7 +11,7 @@ import ClientComments from '@/features/clients/components/ClientComments';
 import type { UserProfile } from '@/types/database';
 import {
   Loader2, AlertCircle, Phone, Mail, MapPin, User, FileText,
-  Pencil, X, Check, Link2, Construction, Building2,
+  Pencil, X, Check, Link2, Construction, Building2, ExternalLink,
 } from 'lucide-react';
 
 export default function ClientDetailPage() {
@@ -200,6 +200,25 @@ export default function ClientDetailPage() {
               <Row icon={<User size={16} className="text-muted-400" />} label="Utworzył(a)" value={profileName(client.created_by)} />
               {client.notes && <Row icon={<FileText size={16} className="text-muted-400" />} label="Notatki" value={client.notes} />}
             </div>
+          )}
+        </div>
+
+        {/* ─── Source ────────────────────────────────────── */}
+        <div className="card p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Link2 size={16} className="text-muted-400" />
+            <p className="text-xs font-medium text-muted-500 uppercase tracking-wide">Źródło klienta</p>
+          </div>
+          {client.created_from_lead_id ? (
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-gray-900">Klient utworzony z leada</p>
+              <button onClick={() => navigate(`/sales/leads/${client.created_from_lead_id}`)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary-600 bg-primary-50 hover:bg-primary-100 transition-colors">
+                <ExternalLink size={14} />Otwórz źródłowego leada
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm font-medium text-gray-900">Klient dodany ręcznie</p>
           )}
         </div>
 

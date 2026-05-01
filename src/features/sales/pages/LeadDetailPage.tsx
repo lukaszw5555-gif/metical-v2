@@ -484,16 +484,21 @@ export default function LeadDetailPage() {
           </button>
         )}
         {lead.converted_client_id && (
-          <button onClick={() => navigate(`/clients/${lead.converted_client_id}`)}
-            className="card w-full p-4 text-left hover:bg-green-50 transition-colors flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
-              <ExternalLink size={20} className="text-green-600" />
+          <div className="card w-full p-4 flex flex-col gap-3 bg-green-50/50 border border-green-100">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
+                <UserPlus size={20} className="text-green-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-gray-900">Ten lead został przekonwertowany na klienta</p>
+                <p className="text-xs text-muted-500">Zarządzaj sprzedażą z poziomu karty klienta</p>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-bold text-green-700">Otwórz klienta</p>
-              <p className="text-xs text-muted-500">Karta klienta utworzona z tego leadu</p>
-            </div>
-          </button>
+            <button onClick={() => navigate(`/clients/${lead.converted_client_id}`)}
+              className="w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-green-600 text-white text-sm font-semibold rounded-xl hover:bg-green-700 active:scale-[0.98] transition-all">
+              <ExternalLink size={16} />Otwórz klienta
+            </button>
+          </div>
         )}
 
         {/* ─── Follow-up quick edit ──────────────────────── */}

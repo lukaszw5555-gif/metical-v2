@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/layout/PageHeader';
 import { useAuth } from '@/context/AuthContext';
 import { getLeadById, updateLead, updateLeadStatus, toggleLeadFavorite } from '@/features/sales/services/salesLeadService';
 import { getLeadComments, addLeadComment } from '@/features/sales/services/leadCommentsService';
 import { getLeadActivity, logLeadActivity } from '@/features/sales/services/leadActivityService';
 import type { LeadActivityEntry } from '@/features/sales/services/leadActivityService';
+import { createClient } from '@/features/clients/services/clientService';
 import { getActiveProfiles } from '@/lib/services/profilesService';
 import LeadComments from '@/features/sales/components/LeadComments';
 import type { SalesLead, SalesLeadStatus, LeadComment, UserProfile } from '@/types/database';
@@ -16,11 +17,12 @@ import {
 } from '@/lib/constants';
 import {
   Loader2, AlertCircle, Phone, Mail, MapPin, User, Star,
-  CalendarClock, FileText, ChevronDown, ChevronUp, Pencil, X, Check, Tag, History,
+  CalendarClock, FileText, ChevronDown, ChevronUp, Pencil, X, Check, Tag, History, UserPlus, ExternalLink,
 } from 'lucide-react';
 
 export default function LeadDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user, profile: authProfile } = useAuth();
   const userId = user?.id ?? '';
 
@@ -52,6 +54,9 @@ export default function LeadDetailPage() {
   // Activity log state
   const [activity, setActivity] = useState<LeadActivityEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+
+  // Conversion state
+  const [converting, setConverting] = useState(false);
 
   const loadAll = useCallback(async () => {
     if (!id) return;
@@ -195,6 +200,36 @@ export default function LeadDetailPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Błąd zapisu follow-up');
     } finally { setSavingFollowUp(false); }
+  };
+
+  // Convert lead → client
+  const handleConvert = async () => {
+    if (!lead) return;
+    setConverting(true);
+    try {
+      const notes = [lead.qualification_note, lead.follow_up_note].filter(Boolean).join('\n');
+      const newClient = await createClient({
+        full_name: lead.full_name,
+        phone: lead.phone || null,
+        email: lead.email || null,
+        city: lead.city || null,
+        source: lead.source || null,
+        created_from_lead_id: lead.id,
+        assigned_to: lead.primary_assigned_to || userId,
+        notes: notes || null,
+      }, userId);
+      // Update lead with converted_client_id
+      await updateLead(lead.id, { converted_client_id: newClient.id });
+      // Set status to won if not already
+      if (lead.status !== 'won') {
+        await updateLeadStatus(lead.id, 'won');
+      }
+      await logLeadActivity(lead.id, userId, 'lead_updated', 'Utworzono kartę klienta');
+      navigate(`/clients/${newClient.id}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Błąd konwersji');
+      setConverting(false);
+    }
   };
 
   // Helpers
@@ -387,6 +422,32 @@ export default function LeadDetailPage() {
             )}
           </div>
         </div>
+
+        {/* ─── Lead → Client conversion ─────────────────── */}
+        {canEdit && !lead.converted_client_id && (
+          <button onClick={handleConvert} disabled={converting}
+            className="card w-full p-4 text-left hover:bg-green-50 transition-colors flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+              {converting ? <Loader2 size={20} className="animate-spin text-green-600" /> : <UserPlus size={20} className="text-green-600" />}
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-gray-900">Stwórz kartę klienta</p>
+              <p className="text-xs text-muted-500">Przenieś dane leadu do karty klienta</p>
+            </div>
+          </button>
+        )}
+        {lead.converted_client_id && (
+          <button onClick={() => navigate(`/clients/${lead.converted_client_id}`)}
+            className="card w-full p-4 text-left hover:bg-green-50 transition-colors flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+              <ExternalLink size={20} className="text-green-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-bold text-green-700">Otwórz klienta</p>
+              <p className="text-xs text-muted-500">Karta klienta utworzona z tego leadu</p>
+            </div>
+          </button>
+        )}
 
         {/* ─── Follow-up quick edit ──────────────────────── */}
         <div className="card p-4">

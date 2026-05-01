@@ -20,8 +20,9 @@ import LeadDetailPage from '@/features/sales/pages/LeadDetailPage';
 import FollowUpPage from '@/features/sales/pages/FollowUpPage';
 import OffersPage from '@/features/sales/pages/OffersPage';
 
-// Placeholder pages
-import ClientsPage from '@/pages/ClientsPage';
+// Client pages
+import ClientsPage from '@/features/clients/pages/ClientsPage';
+import ClientDetailPage from '@/features/clients/pages/ClientDetailPage';
 
 export default function App() {
   return (
@@ -47,8 +48,9 @@ export default function App() {
               {/* Notifications */}
               <Route path="/notifications" element={<NotificationsPage />} />
 
-              {/* Placeholders */}
+              {/* Clients */}
               <Route path="/clients" element={<ClientsPage />} />
+              <Route path="/clients/:id" element={<ClientDetailPage />} />
 
               {/* Sales */}
               <Route path="/sales" element={<SalesDashboardPage />} />

@@ -22,7 +22,7 @@ interface NavItem {
 const standardNav: NavItem[] = [
   { to: '/tasks', label: 'Zadania', icon: <ClipboardCheck size={22} /> },
   { to: '/investments', label: 'Inwestycje', icon: <Building2 size={22} /> },
-  { to: '/clients', label: 'Klienci', icon: <Users size={22} />, disabled: true },
+  { to: '/clients', label: 'Klienci', icon: <Users size={22} /> },
   { to: '/sales', label: 'Sprzedaż', icon: <TrendingUp size={22} /> },
   { to: '/settings', label: 'Ustawienia', icon: <Settings size={22} /> },
 ];

@@ -195,16 +195,18 @@ export default function InvestmentDetailPage() {
   if (!inv) return null;
 
   const sc = INVESTMENT_STATUS_COLORS[inv.status];
+  const [showStatusPanel, setShowStatusPanel] = useState(false);
 
   return (
     <><PageHeader title="Inwestycja" showBack />
-      <div className="px-4 py-4 mx-auto max-w-lg space-y-4 pb-8">
+      <div className="px-4 py-4 mx-auto max-w-lg space-y-4 pb-24">
         {error && <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-xl">
           <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" /><p className="text-sm text-red-700">{error}</p>
         </div>}
 
-        {/* Info card */}
+        {/* ─── Info card with inline status ─────────────── */}
         <div className="card p-5">
+          {/* Chips row */}
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold"
               style={{ backgroundColor: sc + '18', color: sc }}>
@@ -221,6 +223,7 @@ export default function InvestmentDetailPage() {
 
           <h1 className="text-lg font-bold text-gray-900 mb-3">{inv.name}</h1>
 
+          {/* Details */}
           <div className="space-y-2.5 pt-3 border-t border-surface-100">
             <Row icon={<User size={16} className="text-primary-500" />} label="Klient" value={inv.client_name} />
             {inv.client_phone && <Row icon={<Phone size={16} className="text-muted-400" />} label="Telefon" value={inv.client_phone} />}
@@ -230,9 +233,43 @@ export default function InvestmentDetailPage() {
             <Row icon={<Clock size={16} className="text-muted-400" />} label="Utworzono" value={fmtDT(inv.created_at)} />
             <Row icon={<Clock size={16} className="text-muted-400" />} label="Ostatnia zmiana" value={fmtDT(inv.updated_at)} />
           </div>
+
+          {/* Compact status changer — inline in info card */}
+          <div className="mt-4 pt-3 border-t border-surface-100">
+            <button
+              onClick={() => setShowStatusPanel(!showStatusPanel)}
+              className="flex items-center gap-2 w-full text-left group"
+            >
+              <p className="text-xs font-medium text-muted-500 uppercase tracking-wide flex-1">Zmień status</p>
+              {showStatusPanel
+                ? <ChevronUp size={14} className="text-muted-400" />
+                : <ChevronDown size={14} className="text-muted-400" />}
+            </button>
+            {showStatusPanel && (
+              <div className="flex flex-wrap gap-1.5 mt-2.5">
+                {INVESTMENT_STATUSES.map((s) => {
+                  const active = inv.status === s;
+                  const updating = updatingStatus === s;
+                  const col = INVESTMENT_STATUS_COLORS[s];
+                  return (
+                    <button key={s} onClick={() => handleStatus(s)}
+                      disabled={active || updatingStatus !== null}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                        active ? 'ring-2 ring-offset-1 text-white' : 'hover:opacity-80 active:scale-[0.97]'
+                      } disabled:opacity-50`}
+                      style={{ backgroundColor: active ? col : col + '18', color: active ? 'white' : col }}>
+                      {updating ? <Loader2 size={12} className="animate-spin" /> :
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: active ? 'white' : col }} />}
+                      {INVESTMENT_STATUS_LABELS[s]}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Components note */}
+        {/* ─── Components note ─────────────────────────── */}
         {inv.components_note && (
           <div className="card p-4">
             <div className="flex items-center gap-2 mb-2">
@@ -243,7 +280,7 @@ export default function InvestmentDetailPage() {
           </div>
         )}
 
-        {/* Investment tasks */}
+        {/* ─── Tasks ───────────────────────────────────── */}
         {invTasks.length > 0 && (
           <div className="card p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -283,31 +320,7 @@ export default function InvestmentDetailPage() {
           </div>
         )}
 
-        {/* Status actions */}
-        <div className="card p-4">
-          <p className="text-xs font-medium text-muted-500 uppercase tracking-wide mb-3">Zmień status</p>
-          <div className="grid grid-cols-2 gap-2">
-            {INVESTMENT_STATUSES.map((s) => {
-              const active = inv.status === s;
-              const updating = updatingStatus === s;
-              const col = INVESTMENT_STATUS_COLORS[s];
-              return (
-                <button key={s} onClick={() => handleStatus(s)}
-                  disabled={active || updatingStatus !== null}
-                  className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                    active ? 'ring-2 ring-offset-1 text-white' : 'hover:opacity-80 active:scale-[0.97]'
-                  } disabled:opacity-50`}
-                  style={{ backgroundColor: active ? col : col + '18', color: active ? 'white' : col }}>
-                  {updating ? <Loader2 size={16} className="animate-spin" /> :
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: active ? 'white' : col }} />}
-                  {INVESTMENT_STATUS_LABELS[s]}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Comments */}
+        {/* ─── Comments ────────────────────────────────── */}
         <div className="card p-4">
           <div className="flex items-center gap-2 mb-4">
             <MessageSquare size={16} className="text-primary-500" />
@@ -343,7 +356,7 @@ export default function InvestmentDetailPage() {
           </form>
         </div>
 
-        {/* Activity */}
+        {/* ─── Activity (collapsible) ──────────────────── */}
         <div className="card p-4">
           <button onClick={() => setShowActivity(!showActivity)} className="flex items-center gap-2 w-full text-left">
             <History size={16} className="text-muted-400" />

@@ -25,9 +25,10 @@ import {
 
 export default function TaskDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, profile: authProfile } = useAuth();
   const navigate = useNavigate();
   const userId = user?.id ?? '';
+  const actorName = authProfile?.full_name || authProfile?.email || 'Ktoś';
 
   const [task, setTask] = useState<Task | null>(null);
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
@@ -104,10 +105,11 @@ export default function TaskDetailPage() {
       });
       const otherParty = userId === task.created_by ? task.assigned_to : task.created_by;
       if (otherParty && otherParty !== userId) {
+        const statusLabel = TASK_STATUS_DISPLAY_LABELS[newStatus] || newStatus;
         await createNotification({ recipient_id: otherParty, type: 'task_status_changed',
-          title: 'Zmieniono status zadania', body: `${task.title} → ${newStatus}`, task_id: task.id });
-        sendPushNotification({ recipientId: otherParty, title: 'Zmieniono status zadania',
-          body: `${task.title} → ${newStatus}`, url: `/tasks/${task.id}`, priority: 'normal' });
+          title: `${actorName} zmienił(a) status`, body: `${task.title} → ${statusLabel}`, task_id: task.id });
+        sendPushNotification({ recipientId: otherParty, title: `${actorName} zmienił(a) status`,
+          body: `${task.title} → ${statusLabel}`, url: `/tasks/${task.id}`, priority: 'normal' });
       }
       await refreshCommentsAndActivity();
     } catch (err) {
@@ -132,9 +134,9 @@ export default function TaskDetailPage() {
       const otherParty = userId === task.assigned_to ? task.created_by : task.assigned_to;
       if (otherParty && otherParty !== userId) {
         await createNotification({ recipient_id: otherParty, type: 'task_comment_added',
-          title: 'Nowy komentarz w zadaniu', body: commentBody.trim().slice(0, 80), task_id: task.id });
-        sendPushNotification({ recipientId: otherParty, title: 'Nowy komentarz',
-          body: commentBody.trim().slice(0, 80), url: `/tasks/${task.id}`, priority: 'normal' });
+          title: `${actorName} skomentował(a)`, body: `${task.title}: ${commentBody.trim().slice(0, 60)}`, task_id: task.id });
+        sendPushNotification({ recipientId: otherParty, title: `${actorName} skomentował(a)`,
+          body: `${task.title}: ${commentBody.trim().slice(0, 60)}`, url: `/tasks/${task.id}`, priority: 'normal' });
       }
       await refreshCommentsAndActivity();
     } catch (err) {
@@ -390,8 +392,8 @@ export default function TaskDetailPage() {
                   try {
                     setTask(await bumpTask(task.id));
                     await createNotification({ recipient_id: task.assigned_to!, type: 'task_bumped',
-                      title: 'Podbito zadanie', body: task.title, task_id: task.id, priority: 'critical' });
-                    sendPushNotification({ recipientId: task.assigned_to!, title: 'Podbito zadanie',
+                      title: `${actorName} podbił(a) zadanie`, body: task.title, task_id: task.id, priority: 'critical' });
+                    sendPushNotification({ recipientId: task.assigned_to!, title: `${actorName} podbił(a) zadanie`,
                       body: task.title, url: `/tasks/${task.id}`, priority: 'critical' });
                     await logActivity(userId, { event_type: 'task_bumped', entity_type: 'task',
                       entity_id: task.id, task_id: task.id, body: task.title });

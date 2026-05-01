@@ -60,8 +60,9 @@ const isAssignedToOthers = (t: Task, userId: string) =>
 // ─── Component ───────────────────────────────────────────
 
 export default function TasksPage() {
-  const { user } = useAuth();
+  const { user, profile: authProfile } = useAuth();
   const userId = user?.id ?? '';
+  const actorName = authProfile?.full_name || authProfile?.email || 'Ktoś';
 
   const [tasks, setTasks] = useState<Task[]>([]);
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
@@ -233,7 +234,7 @@ export default function TasksPage() {
       await createNotification({
         recipient_id: data.assigned_to,
         type: 'task_created',
-        title: 'Nowe zadanie',
+        title: `${actorName} przypisal(a) Ci zadanie`,
         body: task.title,
         task_id: task.id,
       });
@@ -241,7 +242,7 @@ export default function TasksPage() {
       // Push notification (fire-and-forget)
       sendPushNotification({
         recipientId: data.assigned_to,
-        title: 'Nowe zadanie',
+        title: `${actorName} przypisal(a) Ci zadanie`,
         body: task.title,
         url: `/tasks/${task.id}`,
         priority: 'normal',

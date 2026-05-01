@@ -11,6 +11,7 @@ import { X, Loader2, Plus } from 'lucide-react';
 interface InvestmentFormModalProps {
   onSubmit: (data: InvestmentFormData) => Promise<void>;
   onClose: () => void;
+  initialData?: Partial<InvestmentFormData>;
 }
 
 export interface InvestmentFormData {
@@ -28,16 +29,17 @@ export interface InvestmentFormData {
 export default function InvestmentFormModal({
   onSubmit,
   onClose,
+  initialData,
 }: InvestmentFormModalProps) {
-  const [name, setName] = useState('');
-  const [clientName, setClientName] = useState('');
-  const [clientPhone, setClientPhone] = useState('');
-  const [clientEmail, setClientEmail] = useState('');
-  const [address, setAddress] = useState('');
-  const [investmentType, setInvestmentType] = useState('pv');
-  const [status, setStatus] = useState('czeka_na_wplate');
-  const [depositPaid, setDepositPaid] = useState(false);
-  const [componentsNote, setComponentsNote] = useState('');
+  const [name, setName] = useState(initialData?.name || '');
+  const [clientName, setClientName] = useState(initialData?.client_name || '');
+  const [clientPhone, setClientPhone] = useState(initialData?.client_phone || '');
+  const [clientEmail, setClientEmail] = useState(initialData?.client_email || '');
+  const [address, setAddress] = useState(initialData?.investment_address || '');
+  const [investmentType, setInvestmentType] = useState(initialData?.investment_type || 'pv');
+  const [status, setStatus] = useState(initialData?.status || 'czeka_na_wplate');
+  const [depositPaid, setDepositPaid] = useState(initialData?.deposit_paid || false);
+  const [componentsNote, setComponentsNote] = useState(initialData?.components_note || '');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 

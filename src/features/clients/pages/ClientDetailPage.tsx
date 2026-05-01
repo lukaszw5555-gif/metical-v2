@@ -11,8 +11,13 @@ import ClientComments from '@/features/clients/components/ClientComments';
 import type { UserProfile } from '@/types/database';
 import {
   Loader2, AlertCircle, Phone, Mail, MapPin, User, FileText,
-  Pencil, X, Check, Link2, Construction, Building2, ExternalLink,
+  Pencil, X, Check, Link2, Construction, Building2, ExternalLink, Plus,
 } from 'lucide-react';
+import type { Investment } from '@/types/database';
+import { getInvestmentsByClientId, createInvestment } from '@/features/investments/services/investmentsService';
+import InvestmentFormModal from '@/features/investments/components/InvestmentFormModal';
+import type { InvestmentFormData } from '@/features/investments/components/InvestmentFormModal';
+import { INVESTMENT_TYPE_LABELS, INVESTMENT_STATUS_LABELS } from '@/lib/constants';
 
 export default function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +28,8 @@ export default function ClientDetailPage() {
   const [client, setClient] = useState<Client | null>(null);
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [comments, setComments] = useState<ClientComment[]>([]);
+  const [investments, setInvestments] = useState<Investment[]>([]);
+  const [showInvestmentModal, setShowInvestmentModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submittingComment, setSubmittingComment] = useState(false);
@@ -39,10 +46,10 @@ export default function ClientDetailPage() {
     if (!id) return;
     try {
       setError(null);
-      const [cl, pr, coms] = await Promise.all([
-        getClientById(id), getActiveProfiles(), getClientComments(id),
+      const [cl, pr, coms, invs] = await Promise.all([
+        getClientById(id), getActiveProfiles(), getClientComments(id), getInvestmentsByClientId(id),
       ]);
-      setClient(cl); setProfiles(pr); setComments(coms);
+      setClient(cl); setProfiles(pr); setComments(coms); setInvestments(invs);
     } catch (e) { setError(e instanceof Error ? e.message : 'Błąd'); }
     finally { setLoading(false); }
   }, [id]);
@@ -52,8 +59,8 @@ export default function ClientDetailPage() {
   const refreshAll = useCallback(async () => {
     if (!id) return;
     try {
-      const [cl, coms] = await Promise.all([getClientById(id), getClientComments(id)]);
-      setClient(cl); setComments(coms);
+      const [cl, coms, invs] = await Promise.all([getClientById(id), getClientComments(id), getInvestmentsByClientId(id)]);
+      setClient(cl); setComments(coms); setInvestments(invs);
     } catch (e) { console.error(e); }
   }, [id]);
 
@@ -102,6 +109,17 @@ export default function ClientDetailPage() {
     try { await addClientComment(client.id, body, userId); await refreshAll(); }
     catch (e) { setError(e instanceof Error ? e.message : 'Błąd'); }
     finally { setSubmittingComment(false); }
+  };
+
+  const handleCreateInvestment = async (data: InvestmentFormData) => {
+    if (!client) return;
+    try {
+      const newInv = await createInvestment({ ...data, client_id: client.id }, userId);
+      setInvestments(prev => [newInv, ...prev]);
+      setShowInvestmentModal(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Błąd przy tworzeniu inwestycji');
+    }
   };
 
   const profileName = (pid: string | null) => {
@@ -226,16 +244,45 @@ export default function ClientDetailPage() {
         <ClientComments comments={comments} profiles={profiles}
           submitting={submittingComment} onSubmit={handleComment} />
 
-        {/* ─── Placeholders ─────────────────────────── */}
-        <div className="card p-4 opacity-60">
-          <div className="flex items-center gap-2 mb-1">
-            <Building2 size={16} className="text-muted-400" />
-            <p className="text-xs font-medium text-muted-500 uppercase tracking-wide">Inwestycje klienta</p>
+        {/* ─── Client Investments ─────────────────────── */}
+        <div className="card p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Building2 size={16} className="text-primary-500" />
+              <p className="text-xs font-bold text-gray-900 uppercase tracking-wide">Inwestycje klienta</p>
+            </div>
+            {canEdit && (
+              <button onClick={() => setShowInvestmentModal(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 text-primary-600 hover:bg-primary-100 rounded-lg text-xs font-semibold transition-colors">
+                <Plus size={14} />Utwórz inwestycję
+              </button>
+            )}
           </div>
-          <div className="flex items-center gap-1.5">
-            <Construction size={12} className="text-muted-400" />
-            <p className="text-sm text-muted-400">W przygotowaniu</p>
-          </div>
+          {investments.length === 0 ? (
+            <div className="py-6 text-center text-sm text-muted-500 border border-dashed border-surface-200 rounded-xl bg-surface-50">
+              Brak inwestycji dla tego klienta.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {investments.map(inv => (
+                <div key={inv.id} onClick={() => navigate(`/investments/${inv.id}`)}
+                  className="group flex items-center justify-between p-3 rounded-xl border border-surface-200 bg-surface-50 hover:border-primary-200 hover:bg-primary-50/50 transition-all cursor-pointer">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-900 group-hover:text-primary-700 truncate">{inv.name}</p>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-surface-200 text-gray-700 text-[10px] font-medium whitespace-nowrap">
+                        {INVESTMENT_TYPE_LABELS[inv.investment_type] || inv.investment_type}
+                      </span>
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-surface-200 text-gray-700 text-[10px] font-medium whitespace-nowrap">
+                        {INVESTMENT_STATUS_LABELS[inv.status] || inv.status}
+                      </span>
+                    </div>
+                  </div>
+                  <ExternalLink size={16} className="text-muted-400 group-hover:text-primary-500 ml-3 shrink-0" />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="card p-4 opacity-60">
           <div className="flex items-center gap-2 mb-1">
@@ -248,6 +295,19 @@ export default function ClientDetailPage() {
           </div>
         </div>
       </div>
+
+      {showInvestmentModal && client && (
+        <InvestmentFormModal
+          onClose={() => setShowInvestmentModal(false)}
+          onSubmit={handleCreateInvestment}
+          initialData={{
+            client_name: client.full_name,
+            client_phone: client.phone || '',
+            client_email: client.email || '',
+            investment_address: client.address || client.city || '',
+          }}
+        />
+      )}
     </>
   );
 }

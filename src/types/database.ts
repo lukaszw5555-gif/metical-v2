@@ -55,6 +55,7 @@ export interface Investment {
   deposit_paid: boolean;
   components_note: string | null;
   created_by: string;
+  client_id: string | null;
   created_at: string;
   updated_at: string;
 }

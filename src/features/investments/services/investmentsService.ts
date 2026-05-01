@@ -26,6 +26,18 @@ export async function getInvestmentById(id: string): Promise<Investment> {
   return data as Investment;
 }
 
+/** Fetch investments linked to a specific client */
+export async function getInvestmentsByClientId(clientId: string): Promise<Investment[]> {
+  const { data, error } = await supabase
+    .from('investments')
+    .select('*')
+    .eq('client_id', clientId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data as Investment[];
+}
+
 // ─── Create ──────────────────────────────────────────────
 
 export interface CreateInvestmentInput {
@@ -38,6 +50,7 @@ export interface CreateInvestmentInput {
   status?: string;
   deposit_paid?: boolean;
   components_note?: string;
+  client_id?: string;
 }
 
 /**
@@ -64,6 +77,7 @@ export async function createInvestment(
       deposit_paid: input.deposit_paid ?? false,
       components_note: input.components_note || null,
       created_by: userId,
+      client_id: input.client_id || null,
     })
     .select()
     .single();

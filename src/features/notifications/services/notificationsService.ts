@@ -91,3 +91,43 @@ export async function createNotification(input: CreateNotificationInput): Promis
     console.error('[Notifications] Create failed:', error.message);
   }
 }
+
+// ─── Investment Unread Counts ────────────────────────────
+
+/** Fetch unread notification counts grouped by investment_id.
+ *  Returns a Map<investmentId, count>. */
+export async function getUnreadCountsByInvestment(): Promise<Map<string, number>> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return new Map();
+
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('investment_id')
+    .eq('recipient_id', user.id)
+    .eq('is_read', false)
+    .not('investment_id', 'is', null);
+
+  if (error) { console.error('[Notifications] Unread counts error:', error.message); return new Map(); }
+
+  const counts = new Map<string, number>();
+  for (const row of (data || [])) {
+    const id = row.investment_id as string;
+    counts.set(id, (counts.get(id) || 0) + 1);
+  }
+  return counts;
+}
+
+/** Mark all unread notifications for a specific investment as read */
+export async function markInvestmentNotificationsAsRead(investmentId: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const { error } = await supabase
+    .from('notifications')
+    .update({ is_read: true })
+    .eq('recipient_id', user.id)
+    .eq('investment_id', investmentId)
+    .eq('is_read', false);
+
+  if (error) console.error('[Notifications] Mark investment read error:', error.message);
+}

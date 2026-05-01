@@ -8,6 +8,8 @@ import { getInvestmentComments, addInvestmentComment } from '@/features/investme
 import { getTasksByInvestmentId } from '@/features/tasks/services/tasksService';
 import { fetchInvestmentActivity, logActivity } from '@/features/activity/services/activityLogService';
 import { getActiveProfiles } from '@/lib/services/profilesService';
+import { createNotification, markInvestmentNotificationsAsRead } from '@/features/notifications/services/notificationsService';
+import { sendPushNotification } from '@/features/notifications/services/pushSendService';
 import type { Investment, InvestmentStatus, InvestmentComment, ActivityLogEntry, UserProfile, Task } from '@/types/database';
 import {
   INVESTMENT_STATUS_LABELS, INVESTMENT_STATUS_COLORS, INVESTMENT_STATUSES,
@@ -21,9 +23,10 @@ import {
 
 export default function InvestmentDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, profile: authProfile } = useAuth();
   const navigate = useNavigate();
   const userId = user?.id ?? '';
+  const actorName = authProfile?.full_name || authProfile?.email || 'Ktoś';
 
   const [inv, setInv] = useState<Investment | null>(null);
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
@@ -54,6 +57,11 @@ export default function InvestmentDetailPage() {
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
+  // Mark investment notifications as read on load
+  useEffect(() => {
+    if (id) markInvestmentNotificationsAsRead(id);
+  }, [id]);
+
   const refreshSections = useCallback(async () => {
     if (!id) return;
     try {
@@ -76,6 +84,22 @@ export default function InvestmentDetailPage() {
         entity_id: inv.id, investment_id: inv.id,
         metadata: { old_status: old, new_status: s },
       });
+
+      // Notify other users who can see this investment
+      const statusLabel = INVESTMENT_STATUS_LABELS[s] || s;
+      const others = profiles.filter((p) => p.id !== userId && p.is_active);
+      for (const p of others) {
+        await createNotification({
+          recipient_id: p.id, type: 'investment_status_changed',
+          title: `${actorName} zmienił(a) status inwestycji`,
+          body: `${inv.name} → ${statusLabel}`, investment_id: inv.id,
+        });
+        sendPushNotification({
+          recipientId: p.id, title: `${actorName} zmienił(a) status inwestycji`,
+          body: `${inv.name} → ${statusLabel}`, url: `/investments/${inv.id}`, priority: 'normal',
+        });
+      }
+
       await refreshSections();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Błąd zmiany statusu');
@@ -95,6 +119,21 @@ export default function InvestmentDetailPage() {
         body: commentBody.trim().slice(0, 100), metadata: { comment_id: c.id },
       });
       setCommentBody('');
+
+      // Notify other users
+      const others = profiles.filter((p) => p.id !== userId && p.is_active);
+      for (const p of others) {
+        await createNotification({
+          recipient_id: p.id, type: 'investment_comment_added',
+          title: `${actorName} skomentował(a) inwestycję`,
+          body: `${inv.name}: ${commentBody.trim().slice(0, 60)}`, investment_id: inv.id,
+        });
+        sendPushNotification({
+          recipientId: p.id, title: `${actorName} skomentował(a) inwestycję`,
+          body: `${inv.name}: ${commentBody.trim().slice(0, 60)}`, url: `/investments/${inv.id}`, priority: 'normal',
+        });
+      }
+
       await refreshSections();
     } catch (e2) {
       setError(e2 instanceof Error ? e2.message : 'Błąd komentarza');

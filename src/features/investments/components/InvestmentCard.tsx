@@ -5,13 +5,14 @@ import {
   INVESTMENT_STATUS_LABELS,
   INVESTMENT_STATUS_COLORS,
 } from '@/lib/constants';
-import { MapPin, User, Banknote } from 'lucide-react';
+import { MapPin, User, Banknote, Bell } from 'lucide-react';
 
 interface InvestmentCardProps {
   investment: Investment;
+  unreadCount?: number;
 }
 
-export default function InvestmentCard({ investment }: InvestmentCardProps) {
+export default function InvestmentCard({ investment, unreadCount = 0 }: InvestmentCardProps) {
   const navigate = useNavigate();
   const statusColor = INVESTMENT_STATUS_COLORS[investment.status];
 
@@ -20,11 +21,17 @@ export default function InvestmentCard({ investment }: InvestmentCardProps) {
       onClick={() => navigate(`/investments/${investment.id}`)}
       className="card w-full p-4 text-left hover:bg-surface-50 transition-colors"
     >
-      {/* Top row: name + status */}
+      {/* Top row: name + unread badge + status */}
       <div className="flex items-start gap-2 mb-2">
-        <h3 className="text-sm font-semibold text-slate-800 flex-1 line-clamp-2">
+        <h3 className="text-sm font-bold text-gray-900 flex-1 line-clamp-2">
           {investment.name}
         </h3>
+        {unreadCount > 0 && (
+          <span className="shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary-600 text-white text-[10px] font-bold leading-none">
+            <Bell size={9} />
+            {unreadCount}
+          </span>
+        )}
         <span
           className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold"
           style={{

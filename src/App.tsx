@@ -24,6 +24,11 @@ import OffersPage from '@/features/sales/pages/OffersPage';
 import ClientsPage from '@/features/clients/pages/ClientsPage';
 import ClientDetailPage from '@/features/clients/pages/ClientDetailPage';
 
+// PV Offer pages
+import PvOffersPage from '@/features/offers/pv/pages/PvOffersPage';
+import PvOfferFormPage from '@/features/offers/pv/pages/PvOfferFormPage';
+import PvOfferDetailPage from '@/features/offers/pv/pages/PvOfferDetailPage';
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -58,6 +63,12 @@ export default function App() {
               <Route path="/sales/leads/:id" element={<LeadDetailPage />} />
               <Route path="/sales/followup" element={<FollowUpPage />} />
               <Route path="/sales/offers" element={<OffersPage />} />
+
+              {/* PV Offers */}
+              <Route path="/sales/offers/pv" element={<PvOffersPage />} />
+              <Route path="/sales/offers/pv/new" element={<PvOfferFormPage />} />
+              <Route path="/sales/offers/pv/:id" element={<PvOfferDetailPage />} />
+              <Route path="/sales/offers/pv/:id/edit" element={<PvOfferFormPage />} />
 
               {/* Settings */}
               <Route path="/settings" element={<SettingsPage />} />

@@ -4,6 +4,8 @@ import PageHeader from '@/components/layout/PageHeader';
 import { useAuth } from '@/context/AuthContext';
 import { getLeadById, updateLead, updateLeadStatus, toggleLeadFavorite } from '@/features/sales/services/salesLeadService';
 import { getLeadComments, addLeadComment } from '@/features/sales/services/leadCommentsService';
+import { getLeadActivity, logLeadActivity } from '@/features/sales/services/leadActivityService';
+import type { LeadActivityEntry } from '@/features/sales/services/leadActivityService';
 import { getActiveProfiles } from '@/lib/services/profilesService';
 import LeadComments from '@/features/sales/components/LeadComments';
 import type { SalesLead, SalesLeadStatus, LeadComment, UserProfile } from '@/types/database';
@@ -14,7 +16,7 @@ import {
 } from '@/lib/constants';
 import {
   Loader2, AlertCircle, Phone, Mail, MapPin, User, Star,
-  CalendarClock, FileText, ChevronDown, ChevronUp, Pencil, X, Check, Tag,
+  CalendarClock, FileText, ChevronDown, ChevronUp, Pencil, X, Check, Tag, History,
 } from 'lucide-react';
 
 export default function LeadDetailPage() {
@@ -41,14 +43,24 @@ export default function LeadDetailPage() {
     next_follow_up_at: '', follow_up_note: '',
   });
 
+  // Follow-up quick edit state
+  const [editingFollowUp, setEditingFollowUp] = useState(false);
+  const [savingFollowUp, setSavingFollowUp] = useState(false);
+  const [fuDate, setFuDate] = useState('');
+  const [fuNote, setFuNote] = useState('');
+
+  // Activity log state
+  const [activity, setActivity] = useState<LeadActivityEntry[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
   const loadAll = useCallback(async () => {
     if (!id) return;
     try {
       setError(null);
-      const [ld, pr, coms] = await Promise.all([
-        getLeadById(id), getActiveProfiles(), getLeadComments(id),
+      const [ld, pr, coms, act] = await Promise.all([
+        getLeadById(id), getActiveProfiles(), getLeadComments(id), getLeadActivity(id),
       ]);
-      setLead(ld); setProfiles(pr); setComments(coms);
+      setLead(ld); setProfiles(pr); setComments(coms); setActivity(act);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Błąd ładowania');
     } finally { setLoading(false); }
@@ -59,8 +71,8 @@ export default function LeadDetailPage() {
   const refreshLead = useCallback(async () => {
     if (!id) return;
     try {
-      const [ld, coms] = await Promise.all([getLeadById(id), getLeadComments(id)]);
-      setLead(ld); setComments(coms);
+      const [ld, coms, act] = await Promise.all([getLeadById(id), getLeadComments(id), getLeadActivity(id)]);
+      setLead(ld); setComments(coms); setActivity(act);
     } catch (e) { console.error(e); }
   }, [id]);
 
@@ -76,9 +88,12 @@ export default function LeadDetailPage() {
   // Status change
   const handleStatus = async (s: SalesLeadStatus) => {
     if (!lead || lead.status === s) return;
+    const oldLabel = LEAD_STATUS_LABELS[lead.status];
     setUpdatingStatus(s);
     try {
       setLead(await updateLeadStatus(lead.id, s));
+      await logLeadActivity(lead.id, userId, 'lead_status_changed', `Zmieniono status z ${oldLabel} na ${LEAD_STATUS_LABELS[s]}`);
+      await refreshLead();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Błąd zmiany statusu');
     } finally { setUpdatingStatus(null); }
@@ -87,8 +102,12 @@ export default function LeadDetailPage() {
   // Favorite
   const handleFavorite = async () => {
     if (!lead) return;
-    try { setLead(await toggleLeadFavorite(lead.id, !lead.is_favorite)); }
-    catch (e) { console.error(e); }
+    const wasFav = lead.is_favorite;
+    try {
+      setLead(await toggleLeadFavorite(lead.id, !wasFav));
+      await logLeadActivity(lead.id, userId, 'lead_favorite_changed', wasFav ? 'Usunięto z ulubionych' : 'Oznaczono lead jako ulubiony');
+      await refreshLead();
+    } catch (e) { console.error(e); }
   };
 
   // Edit
@@ -133,6 +152,8 @@ export default function LeadDetailPage() {
       });
       setLead(updated);
       setEditing(false);
+      await logLeadActivity(lead.id, userId, 'lead_updated', 'Zaktualizowano dane leadu');
+      await refreshLead();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Błąd zapisu');
     } finally { setSavingEdit(false); }
@@ -144,10 +165,36 @@ export default function LeadDetailPage() {
     setSubmittingComment(true);
     try {
       await addLeadComment(lead.id, body, userId);
+      await logLeadActivity(lead.id, userId, 'lead_comment_added', 'Dodano komentarz');
       await refreshLead();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Błąd komentarza');
     } finally { setSubmittingComment(false); }
+  };
+
+  // Follow-up quick edit
+  const startEditFollowUp = () => {
+    if (!lead) return;
+    setFuDate(lead.next_follow_up_at ? new Date(lead.next_follow_up_at).toISOString().slice(0, 16) : '');
+    setFuNote(lead.follow_up_note || '');
+    setEditingFollowUp(true);
+  };
+  const handleSaveFollowUp = async () => {
+    if (!lead) return;
+    setSavingFollowUp(true);
+    try {
+      const updated = await updateLead(lead.id, {
+        next_follow_up_at: fuDate ? new Date(fuDate).toISOString() : null,
+        follow_up_note: fuNote.trim() || null,
+      });
+      setLead(updated);
+      setEditingFollowUp(false);
+      const dateLabel = fuDate ? new Date(fuDate).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'brak';
+      await logLeadActivity(lead.id, userId, 'lead_followup_changed', `Ustawiono follow-up na ${dateLabel}`);
+      await refreshLead();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Błąd zapisu follow-up');
+    } finally { setSavingFollowUp(false); }
   };
 
   // Helpers
@@ -341,9 +388,93 @@ export default function LeadDetailPage() {
           </div>
         </div>
 
+        {/* ─── Follow-up quick edit ──────────────────────── */}
+        <div className="card p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <CalendarClock size={16} className="text-primary-500" />
+            <p className="text-xs font-medium text-muted-500 uppercase tracking-wide flex-1">Follow-up</p>
+            {canEdit && !editingFollowUp && (
+              <button onClick={startEditFollowUp}
+                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-semibold text-primary-600 bg-primary-50 hover:bg-primary-100 transition-colors">
+                <Pencil size={10} />Edytuj
+              </button>
+            )}
+          </div>
+          {editingFollowUp ? (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[11px] text-muted-400 mb-1">Data i godzina</label>
+                <input type="datetime-local" value={fuDate} onChange={(e) => setFuDate(e.target.value)}
+                  disabled={savingFollowUp} className={ic} />
+              </div>
+              <div>
+                <label className="block text-[11px] text-muted-400 mb-1">Notatka</label>
+                <textarea value={fuNote} onChange={(e) => setFuNote(e.target.value)}
+                  rows={2} disabled={savingFollowUp} className={`${ic} resize-none`}
+                  placeholder="Np. Zadzwonić po decyzji..." />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={handleSaveFollowUp} disabled={savingFollowUp}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-primary-600 text-white text-sm font-semibold rounded-xl hover:bg-primary-700 active:scale-[0.98] transition-all disabled:opacity-60">
+                  {savingFollowUp ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                  Zapisz
+                </button>
+                <button onClick={() => setEditingFollowUp(false)} disabled={savingFollowUp}
+                  className="px-3 py-2 bg-surface-100 text-muted-600 text-sm font-semibold rounded-xl hover:bg-surface-200 transition-colors">
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-muted-400 w-16 shrink-0">Data:</span>
+                <span className={`text-sm font-medium ${lead.next_follow_up_at && new Date(lead.next_follow_up_at) < new Date(new Date().toDateString()) ? 'text-red-500' : 'text-gray-900'}`}>
+                  {lead.next_follow_up_at ? new Date(lead.next_follow_up_at).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                </span>
+              </div>
+              {lead.follow_up_note && (
+                <div className="flex items-start gap-2">
+                  <span className="text-[11px] text-muted-400 w-16 shrink-0 mt-0.5">Notatka:</span>
+                  <span className="text-sm text-gray-700">{lead.follow_up_note}</span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* ─── Comments ──────────────────────────────────── */}
         <LeadComments comments={comments} profiles={profiles}
           submitting={submittingComment} onSubmit={handleComment} />
+
+        {/* ─── Historia leadu ────────────────────────────── */}
+        <div className="card p-4">
+          <button onClick={() => setShowHistory(!showHistory)}
+            className="flex items-center gap-2 w-full text-left">
+            <History size={16} className="text-muted-400" />
+            <p className="text-xs font-medium text-muted-500 uppercase tracking-wide flex-1">Historia leadu ({activity.length})</p>
+            {showHistory ? <ChevronUp size={14} className="text-muted-400" /> : <ChevronDown size={14} className="text-muted-400" />}
+          </button>
+          {showHistory && (
+            <div className="mt-3 space-y-2">
+              {activity.length === 0 && <p className="text-sm text-muted-400">Brak wpisów.</p>}
+              {activity.map((a) => (
+                <div key={a.id} className="flex gap-2.5 text-xs">
+                  <span className="text-muted-300 shrink-0 w-[70px] text-right pt-0.5">
+                    {new Date(a.created_at).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })}
+                    {' '}
+                    {new Date(a.created_at).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  <div className="w-px bg-surface-200 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="font-semibold text-gray-800">{profileName(a.actor_id)}</span>
+                    <span className="text-muted-500"> — {a.body}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

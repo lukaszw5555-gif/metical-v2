@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
 import { useAuth } from '@/context/AuthContext';
 import { getLeads, createLead } from '@/features/sales/services/salesLeadService';
+import { logLeadActivity } from '@/features/sales/services/leadActivityService';
 import { getActiveProfiles } from '@/lib/services/profilesService';
 import LeadCard from '@/features/sales/components/LeadCard';
 import LeadFormModal from '@/features/sales/components/LeadFormModal';
@@ -61,7 +62,7 @@ export default function LeadsPage() {
   }, [leads, statusFilter, sourceFilter, assignedFilter, favOnly, search]);
 
   const handleCreate = async (d: LeadFormData) => {
-    await createLead({
+    const newLead = await createLead({
       full_name: d.full_name, phone: d.phone,
       email: d.email || null, city: d.city || null,
       source: d.source, service_type: d.service_type || null,
@@ -71,6 +72,7 @@ export default function LeadsPage() {
       next_follow_up_at: d.next_follow_up_at ? new Date(d.next_follow_up_at).toISOString() : null,
       follow_up_note: d.follow_up_note || null,
     }, userId);
+    await logLeadActivity(newLead.id, userId, 'lead_created', 'Utworzono lead');
     setShowForm(false);
     await load();
   };

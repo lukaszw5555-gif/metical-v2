@@ -39,6 +39,7 @@ export default function InvestmentDetailPage() {
   const [commentBody, setCommentBody] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
+  const [showStatusPanel, setShowStatusPanel] = useState(false);
 
   // Edit state
   const [editing, setEditing] = useState(false);
@@ -267,7 +268,6 @@ export default function InvestmentDetailPage() {
   if (!inv) return null;
 
   const sc = INVESTMENT_STATUS_COLORS[inv.status];
-  const [showStatusPanel, setShowStatusPanel] = useState(false);
 
   return (
     <><PageHeader title="Inwestycja" showBack />

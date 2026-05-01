@@ -59,7 +59,7 @@ export default function ArchivedTasksPage() {
   return (
     <>
       <PageHeader title="Archiwum zadań" showBack />
-      <div className="px-4 py-4 mx-auto max-w-lg pb-24">
+      <div className="px-4 py-4 mx-auto max-w-lg md:max-w-5xl pb-24 md:pb-8">
         {loading && (
           <div className="mt-16 flex flex-col items-center gap-2">
             <Loader2 size={28} className="animate-spin text-primary-500" />

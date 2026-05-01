@@ -13,7 +13,7 @@ export default function OffersPage() {
   return (
     <>
       <PageHeader title="Oferty" showBack />
-      <div className="px-4 py-4 mx-auto max-w-lg pb-24">
+      <div className="px-4 py-4 mx-auto max-w-lg md:max-w-5xl pb-24 md:pb-8">
         <div className="grid grid-cols-2 gap-3">
           {offerTiles.map((t) => (
             <div key={t.label} className="card p-5 flex flex-col items-center text-center gap-3 opacity-60">

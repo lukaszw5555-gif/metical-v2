@@ -138,7 +138,7 @@ export default function NotificationsPage() {
   return (
     <>
       <PageHeader title="Powiadomienia" showBack showNotifications={false} />
-      <div className="px-4 py-4 mx-auto max-w-lg pb-24">
+      <div className="px-4 py-4 mx-auto max-w-lg md:max-w-5xl pb-24 md:pb-8">
         {/* Mark all button */}
         {unreadCount > 0 && (
           <button onClick={handleMarkAll}

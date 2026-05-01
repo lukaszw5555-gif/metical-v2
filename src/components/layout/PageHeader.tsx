@@ -35,7 +35,7 @@ export default function PageHeader({
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-lg border-b border-surface-200">
-      <div className="mx-auto max-w-lg flex items-center justify-between h-14 px-4">
+      <div className="mx-auto max-w-lg md:max-w-5xl flex items-center justify-between h-14 px-4">
         {/* Left side */}
         <div className="flex items-center gap-3 min-w-0">
           {showBack && (

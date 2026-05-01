@@ -94,7 +94,7 @@ export default function InvestmentsPage() {
   return (
     <>
       <PageHeader title="Inwestycje" />
-      <div className="px-4 py-4 mx-auto max-w-lg pb-24">
+      <div className="px-4 py-4 mx-auto max-w-lg md:max-w-5xl pb-24 md:pb-8">
         <div className="flex gap-2 overflow-x-auto pb-3 -mx-4 px-4 scrollbar-hide">
           {FILTERS.map((f) => (
             <button key={f.key} onClick={() => setFilter(f.key)}
@@ -120,7 +120,7 @@ export default function InvestmentsPage() {
         )}
 
         {!loading && !error && filtered.length > 0 && (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {filtered.map((inv) => (
               <InvestmentCard key={inv.id} investment={inv} unreadCount={unreadCounts.get(inv.id) || 0} />
             ))}
@@ -148,7 +148,7 @@ export default function InvestmentsPage() {
 
       {!loading && (
         <button onClick={() => setShowForm(true)} aria-label="Nowa inwestycja"
-          className="fixed right-4 bottom-20 z-40 w-14 h-14 bg-primary-600 text-white rounded-2xl shadow-lg hover:bg-primary-700 active:scale-95 transition-all flex items-center justify-center"
+          className="fixed right-4 bottom-20 md:bottom-8 md:right-8 z-40 w-14 h-14 bg-primary-600 text-white rounded-2xl shadow-lg hover:bg-primary-700 active:scale-95 transition-all flex items-center justify-center"
           style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}>
           <Plus size={24} />
         </button>

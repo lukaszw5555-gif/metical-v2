@@ -132,7 +132,7 @@ export default function FollowUpPage() {
   return (
     <>
       <PageHeader title="Follow-up" showBack />
-      <div className="px-4 py-4 mx-auto max-w-lg pb-24">
+      <div className="px-4 py-4 mx-auto max-w-lg md:max-w-5xl pb-24 md:pb-8">
         {loading && (
           <div className="mt-16 flex flex-col items-center gap-2">
             <Loader2 size={28} className="animate-spin text-primary-500" />
@@ -167,7 +167,7 @@ export default function FollowUpPage() {
 
             {/* Lead cards */}
             {currentLeads.length > 0 ? (
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {currentLeads.map((l) => {
                   const sc = LEAD_STATUS_COLORS[l.status];
                   const isEditing = editingId === l.id;

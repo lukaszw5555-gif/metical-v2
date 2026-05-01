@@ -298,7 +298,7 @@ export default function TasksPage() {
   return (
     <>
       <PageHeader title="Zadania" />
-      <div className="px-4 py-4 mx-auto max-w-lg pb-24">
+      <div className="px-4 py-4 mx-auto max-w-lg md:max-w-5xl pb-24 md:pb-8">
         {/* ─── Category Tabs ──────────────────────────────── */}
         <div className="flex gap-1 bg-surface-200/60 p-1 rounded-xl mb-3">
           {categories.map((c) => (
@@ -364,7 +364,7 @@ export default function TasksPage() {
 
         {/* Task list */}
         {!loading && !error && filteredTasks.length > 0 && (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {filteredTasks.map((task) => (
               <TaskCard key={task.id} task={task} profiles={profiles} investments={investments} />
             ))}
@@ -400,7 +400,7 @@ export default function TasksPage() {
       {!loading && (
         <button
           onClick={() => setShowForm(true)}
-          className="fixed right-4 bottom-20 z-40 w-14 h-14 bg-primary-600 text-white rounded-2xl shadow-lg hover:bg-primary-700 active:scale-95 transition-all flex items-center justify-center"
+          className="fixed right-4 bottom-20 md:bottom-8 md:right-8 z-40 w-14 h-14 bg-primary-600 text-white rounded-2xl shadow-lg hover:bg-primary-700 active:scale-95 transition-all flex items-center justify-center"
           style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}
           aria-label="Nowe zadanie"
         >

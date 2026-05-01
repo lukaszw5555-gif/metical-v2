@@ -61,7 +61,7 @@ export default function ClientsPage() {
   return (
     <>
       <PageHeader title="Klienci" />
-      <div className="px-4 py-4 mx-auto max-w-lg pb-24">
+      <div className="px-4 py-4 mx-auto max-w-lg md:max-w-5xl pb-24 md:pb-8">
         {/* Search */}
         <div className="relative mb-3">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-400" />
@@ -99,7 +99,7 @@ export default function ClientsPage() {
           </div>
         )}
         {!loading && !error && filtered.length > 0 && (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
             {filtered.map(c => <ClientCard key={c.id} client={c} profiles={profiles} />)}
           </div>
         )}
@@ -118,7 +118,7 @@ export default function ClientsPage() {
 
       {!loading && (
         <button onClick={() => setShowForm(true)} aria-label="Nowy klient"
-          className="fixed right-4 bottom-20 z-40 w-14 h-14 bg-primary-600 text-white rounded-2xl shadow-lg hover:bg-primary-700 active:scale-95 transition-all flex items-center justify-center"
+          className="fixed right-4 bottom-20 md:bottom-8 md:right-8 z-40 w-14 h-14 bg-primary-600 text-white rounded-2xl shadow-lg hover:bg-primary-700 active:scale-95 transition-all flex items-center justify-center"
           style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}>
           <Plus size={24} />
         </button>

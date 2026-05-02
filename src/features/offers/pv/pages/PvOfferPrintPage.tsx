@@ -4,9 +4,16 @@ import { getPvOfferById } from '../services/pvOfferService';
 import { getPvOfferItems } from '../services/pvOfferItemsService';
 import { exportElementToPdf } from '../services/exportPvOfferPdf';
 import type { PvOffer, PvOfferItem } from '../types/pvOfferTypes';
-import { PV_OFFER_TYPE_LABELS, PV_OFFER_TYPE_COLORS } from '../types/pvOfferTypes';
+import { PV_OFFER_TYPE_LABELS } from '../types/pvOfferTypes';
 import { Loader2, AlertCircle, Printer, ArrowLeft, Download } from 'lucide-react';
 import '../styles/pvOfferPrint.css';
+
+const OFFER_TYPE_DISPLAY: Record<string, string> = {
+  pv: 'Fotowoltaika',
+  pv_me: 'Fotowoltaika + Magazyn energii',
+  me: 'Magazyn energii',
+  individual: 'Oferta indywidualna',
+};
 
 export default function PvOfferPrintPage() {
   const { id } = useParams<{ id: string }>();
@@ -53,7 +60,7 @@ export default function PvOfferPrintPage() {
     </div>
   );
 
-  // ─── Calculations (no internal pricing) ────────────────
+  // ─── Calculations ──────────────────────────────────
   const itemsNet = items.reduce((s, i) => s + i.quantity * i.selling_price, 0);
   const itemsVat = items.reduce((s, i) => s + i.quantity * i.selling_price * i.vat_rate / 100, 0);
   const markup = offer.sales_markup_value || 0;
@@ -64,16 +71,23 @@ export default function PvOfferPrintPage() {
   const finalVat = Math.max(0, itemsVat + markupVat - discountVat);
   const finalGross = finalNet + finalVat;
 
-  // Storage capacity from items
+  // Derived scope info
   const storageKwh = items
     .filter(i => i.category === 'Magazyny energii' && i.capacity_kwh && i.capacity_kwh > 0)
     .reduce((s, i) => s + (i.capacity_kwh! * i.quantity), 0);
 
-  const tc = PV_OFFER_TYPE_COLORS[offer.offer_type] || '#6a6a8e';
+  // Build scope badges
+  const scopeBadges: string[] = [];
+  if (offer.pv_power_kw && offer.pv_power_kw > 0) scopeBadges.push(`${offer.pv_power_kw} kWp`);
+  if (offer.panel_count) scopeBadges.push(`${offer.panel_count} paneli`);
+  if (storageKwh > 0) scopeBadges.push(`Magazyn ${storageKwh.toFixed(1)} kWh`);
+  scopeBadges.push('Dostawa komponentów');
+  scopeBadges.push('Montaż i uruchomienie');
+  scopeBadges.push('Konfiguracja systemu');
 
   return (
     <div style={{ background: '#f0f0f6', minHeight: '100vh', padding: '16px' }}>
-      {/* Controls bar — hidden on print */}
+      {/* Controls — hidden on print */}
       <div className="pv-print-controls no-print">
         <button onClick={() => navigate(`/sales/offers/pv/${offer.id}`)}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-600 bg-white hover:bg-surface-100 transition-colors">
@@ -105,111 +119,160 @@ export default function PvOfferPrintPage() {
         </div>
       </div>
 
-      {/* Mobile info banner — screen only */}
-      <div className="no-print" style={{ maxWidth: 800, margin: '0 auto 12px', padding: '10px 16px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 12, fontSize: 12, color: '#92400e', textAlign: 'center' }}>
+      {/* Mobile info */}
+      <div className="no-print" style={{ maxWidth: 820, margin: '0 auto 12px', padding: '10px 16px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 12, fontSize: 12, color: '#92400e', textAlign: 'center' }}>
         Na telefonie podgląd PDF może różnić się od pliku. Najpewniejszy eksport wykonaj z komputera.
       </div>
 
-      {/* ─── A4 Document ──────────────────────────────────── */}
+      {/* ═══ A4 DOCUMENT ═══════════════════════════════ */}
       <div className="pv-print-doc" ref={docRef}>
 
-        {/* A. Header */}
-        <div className="pv-print-header">
-          <div className="pv-print-header-left">
-            <h1>METICAL</h1>
-            <p className="pv-print-subtitle">Oferta fotowoltaiczna</p>
-          </div>
-          <div className="pv-print-header-right">
-            <p className="pv-print-offer-number">{offer.offer_number || '—'}</p>
-            <p>Data: {fmtDate(offer.created_at)}</p>
-            {offer.valid_until && <p>Ważna do: {fmtDate(offer.valid_until)}</p>}
-            <span className="pv-print-type-badge" style={{ backgroundColor: tc + '18', color: tc }}>
-              {PV_OFFER_TYPE_LABELS[offer.offer_type]}
+        {/* A. Hero cover */}
+        <div className="pv-hero" style={{ backgroundImage: 'url(/pv-offer-hero.png)' }}>
+          <div className="pv-hero-overlay" />
+          <div className="pv-hero-content">
+            <p className="pv-hero-company">METICAL</p>
+            <p className="pv-hero-subtitle">Oferta handlowa</p>
+            <span className="pv-hero-type">
+              {OFFER_TYPE_DISPLAY[offer.offer_type] || PV_OFFER_TYPE_LABELS[offer.offer_type]}
             </span>
+            <div className="pv-hero-meta">
+              <span><strong>Nr:</strong> {offer.offer_number || '—'}</span>
+              <span><strong>Data:</strong> {fmtDate(offer.created_at)}</span>
+              {offer.valid_until && <span><strong>Ważna do:</strong> {fmtDate(offer.valid_until)}</span>}
+              <span><strong>Klient:</strong> {offer.customer_name}</span>
+            </div>
           </div>
         </div>
 
-        {/* B. Customer + C. Technical — side by side */}
-        <div className="pv-print-info-grid">
-          <div className="pv-print-info-block">
-            <h2>Dane klienta</h2>
-            <p><span className="pv-print-info-label">Klient</span></p>
-            <p className="pv-print-info-value">{offer.customer_name}</p>
-            {offer.customer_phone && <><p><span className="pv-print-info-label">Telefon</span></p><p className="pv-print-info-value">{offer.customer_phone}</p></>}
-            {offer.customer_email && <><p><span className="pv-print-info-label">E-mail</span></p><p className="pv-print-info-value">{offer.customer_email}</p></>}
-            {offer.customer_city && <><p><span className="pv-print-info-label">Miejscowość</span></p><p className="pv-print-info-value">{offer.customer_city}</p></>}
-            {offer.investment_address && <><p><span className="pv-print-info-label">Adres inwestycji</span></p><p className="pv-print-info-value">{offer.investment_address}</p></>}
-          </div>
-          <div className="pv-print-info-block">
-            <h2>Parametry techniczne</h2>
-            <p><span className="pv-print-info-label">Moc instalacji</span></p>
-            <p className="pv-print-info-value">{offer.pv_power_kw} kWp</p>
-            {offer.panel_count && <><p><span className="pv-print-info-label">Liczba paneli</span></p><p className="pv-print-info-value">{offer.panel_count} szt.</p></>}
-            {offer.panel_power_w && <><p><span className="pv-print-info-label">Moc panelu</span></p><p className="pv-print-info-value">{offer.panel_power_w} W</p></>}
-            {storageKwh > 0 && <><p><span className="pv-print-info-label">Magazyn energii</span></p><p className="pv-print-info-value">{storageKwh.toFixed(1)} kWh</p></>}
-            {offer.inverter_name && <><p><span className="pv-print-info-label">Falownik</span></p><p className="pv-print-info-value">{offer.inverter_name}</p></>}
+        {/* B. Price card */}
+        <div className="pv-price-card">
+          <p className="pv-price-label">Cena końcowa brutto</p>
+          <p className="pv-price-amount">{fmt(finalGross)}</p>
+          <p className="pv-price-vat">Cena zawiera VAT {offer.vat_rate}%</p>
+        </div>
+
+        {/* C. Scope summary badges */}
+        <div className="pv-scope-summary">
+          {scopeBadges.map((badge, i) => (
+            <span key={i} className="pv-scope-badge">
+              <span className="dot" />{badge}
+            </span>
+          ))}
+        </div>
+
+        {/* D. Customer + Technical info */}
+        <div className="pv-info-section">
+          <div className="pv-info-grid">
+            <div>
+              <h3>Dane klienta</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <InfoRow label="Klient" value={offer.customer_name} />
+                {offer.customer_phone && <InfoRow label="Telefon" value={offer.customer_phone} />}
+                {offer.customer_email && <InfoRow label="E-mail" value={offer.customer_email} />}
+                {offer.customer_city && <InfoRow label="Miejscowość" value={offer.customer_city} />}
+                {offer.investment_address && <InfoRow label="Adres inwestycji" value={offer.investment_address} />}
+              </div>
+            </div>
+            <div>
+              <h3>Parametry techniczne</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <InfoRow label="Moc instalacji" value={`${offer.pv_power_kw} kWp`} />
+                {offer.panel_count && <InfoRow label="Liczba paneli" value={`${offer.panel_count} szt.`} />}
+                {offer.panel_power_w && <InfoRow label="Moc panelu" value={`${offer.panel_power_w} W`} />}
+                {storageKwh > 0 && <InfoRow label="Magazyn energii" value={`${storageKwh.toFixed(1)} kWh`} />}
+                {offer.inverter_name && <InfoRow label="Falownik" value={offer.inverter_name} />}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* D. Items table — scope only, no prices */}
+        {/* E. Scope table — no prices */}
         {items.length > 0 && (
-          <>
-            <h2>Zakres oferty</h2>
-            <table className="pv-print-table">
+          <div className="pv-scope-section">
+            <h3>Zakres dostawy</h3>
+            <table className="pv-scope-table">
               <thead>
                 <tr>
-                  <th style={{ width: '6%' }}>Lp.</th>
-                  <th style={{ width: '46%' }}>Nazwa / zakres</th>
-                  <th style={{ width: '22%' }}>Kategoria</th>
-                  <th className="text-right" style={{ width: '14%' }}>Ilość</th>
-                  <th style={{ width: '12%' }}>J.m.</th>
+                  <th style={{ width: '46%' }}>Element / zakres</th>
+                  <th style={{ width: '24%' }}>Producent</th>
+                  <th className="text-right" style={{ width: '16%' }}>Ilość</th>
+                  <th style={{ width: '14%' }}>J.m.</th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((item, idx) => (
+                {items.map((item) => (
                   <tr key={item.id}>
-                    <td>{idx + 1}</td>
-                    <td>
-                      <span className="pv-print-item-name">{item.trade_name}</span>
-                      {item.manufacturer && <><br /><span className="pv-print-item-cat">{item.manufacturer}</span></>}
-                    </td>
-                    <td><span className="pv-print-item-cat">{item.category}</span></td>
+                    <td><span className="item-name">{item.trade_name}</span></td>
+                    <td><span className="item-mfg">{item.manufacturer || '—'}</span></td>
                     <td className="text-right">{item.quantity}</td>
                     <td>{item.unit}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </>
+          </div>
         )}
 
-        {/* E. Price — final brutto only */}
-        <div className="pv-print-summary">
-          <div className="pv-print-summary-table">
-            <div className="pv-print-summary-row total" style={{ fontSize: '16px' }}>
-              <span>Cena oferty brutto</span>
-              <span>{fmt(finalGross)}</span>
+        {/* F. Bottom price repeat */}
+        <div className="pv-bottom-price">
+          <span className="pv-bottom-price-label">Cena końcowa brutto</span>
+          <span className="pv-bottom-price-amount">{fmt(finalGross)}</span>
+        </div>
+
+        {/* Offer note */}
+        {offer.offer_note && (
+          <div className="pv-note-section">
+            <h3>Uwagi</h3>
+            <div className="pv-note-content">{offer.offer_note}</div>
+          </div>
+        )}
+
+        {/* G. Commercial terms */}
+        <div className="pv-terms-section">
+          <h3>Warunki handlowe i kolejny krok</h3>
+          <div className="pv-terms-grid">
+            <div>
+              <div className="pv-term-label">Ważność oferty</div>
+              <div className="pv-term-value">
+                {offer.valid_until ? fmtDate(offer.valid_until) : 'Do potwierdzenia'}
+              </div>
             </div>
-            <div className="pv-print-summary-row" style={{ borderTop: 'none', paddingTop: 0 }}>
-              <span className="pv-print-summary-label" style={{ fontSize: '10px', color: '#9898b0' }}>Cena zawiera VAT {offer.vat_rate}%</span>
+            <div>
+              <div className="pv-term-label">Czas realizacji</div>
+              <div className="pv-term-value">Do ustalenia po akceptacji oferty</div>
+            </div>
+          </div>
+          <div style={{ fontSize: 12, color: '#4a4a6a', lineHeight: 1.7 }}>
+            <strong>Kolejny krok:</strong> Potwierdzenie zakresu, dostępności komponentów i terminu montażu.
+          </div>
+          <div className="pv-signatures">
+            <div className="pv-sig-block">
+              <div className="pv-sig-line" />
+              <div className="pv-sig-label">Podpis handlowca</div>
+            </div>
+            <div className="pv-sig-block">
+              <div className="pv-sig-line" />
+              <div className="pv-sig-label">Podpis klienta</div>
             </div>
           </div>
         </div>
 
-        {/* F. Offer note */}
-        {offer.offer_note && (
-          <>
-            <h2>Uwagi</h2>
-            <div className="pv-print-note">{offer.offer_note}</div>
-          </>
-        )}
-
-        {/* G. Footer / disclaimer */}
+        {/* H. Footer */}
         <div className="pv-print-footer">
+          <p><strong>METICAL Sp. z o.o.</strong></p>
           <p>Oferta ma charakter informacyjny i wymaga potwierdzenia dostępności komponentów oraz warunków montażu po wizji lokalnej lub analizie technicznej.</p>
-          <p style={{ marginTop: '8px', fontWeight: 700, color: '#4a4a6a' }}>METICAL Sp. z o.o.</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="pv-info-row">
+      <span className="pv-info-label">{label}</span>
+      <span className="pv-info-value">{value}</span>
     </div>
   );
 }

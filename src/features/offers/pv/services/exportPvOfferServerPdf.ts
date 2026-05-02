@@ -36,6 +36,15 @@ export async function generatePvOfferServerPdfBlob(
   clone.querySelectorAll('.no-print, .pv-print-controls, .mobile-info-banner')
     .forEach((el) => el.remove());
 
+  // Remove the hiding class so the clone is visible when rendered by Chromium
+  clone.classList.remove('pv-print-doc-source');
+  clone.style.position = 'static';
+  clone.style.left = 'auto';
+  clone.style.top = 'auto';
+  clone.style.opacity = '1';
+  clone.style.pointerEvents = 'auto';
+  clone.style.width = '100%';
+
   // ─── 2. Load assets as data URLs ────────────────────
   const [logoDataUrl, heroDataUrl] = await Promise.all([
     assetToDataUrl('/metical-logo-light.png'),

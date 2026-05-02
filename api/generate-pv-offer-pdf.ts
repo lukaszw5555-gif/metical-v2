@@ -100,6 +100,16 @@ ${cssText}
       border-radius: 0 !important;
       transform: none !important;
     }
+
+    /* Safety: if the hiding class leaks to server, force visible */
+    .pv-print-doc-source {
+      position: static !important;
+      left: auto !important;
+      top: auto !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      width: 100% !important;
+    }
   </style>
 </head>
 <body>

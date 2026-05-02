@@ -30,7 +30,11 @@ export type PvComponentCategory =
   | 'Akcesoria montażowe'
   | 'Konstrukcje montażowe'
   | 'Dodatkowe usługi'
-  | 'SIG';
+  | 'SIG'
+  | 'Materiały pomocnicze'
+  | 'Skrzynki / rozdzielnice'
+  | 'Backup'
+  | 'Wyłącznik ppoż.';
 
 export const PV_COMPONENT_CATEGORIES: PvComponentCategory[] = [
   'Falowniki',
@@ -40,6 +44,10 @@ export const PV_COMPONENT_CATEGORIES: PvComponentCategory[] = [
   'Konstrukcje montażowe',
   'Dodatkowe usługi',
   'SIG',
+  'Materiały pomocnicze',
+  'Skrzynki / rozdzielnice',
+  'Backup',
+  'Wyłącznik ppoż.',
 ];
 
 export interface CreatePvComponentInput {

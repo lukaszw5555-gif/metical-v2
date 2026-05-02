@@ -50,6 +50,11 @@ async function loadImageAsDataUrl(src: string): Promise<string | null> {
   }
 }
 
+function getImageFormat(dataUrl: string): 'PNG' | 'JPEG' {
+  if (dataUrl.startsWith('data:image/png')) return 'PNG';
+  return 'JPEG';
+}
+
 function fmtCurrency(value: number): string {
   return new Intl.NumberFormat('pl-PL', {
     style: 'currency', currency: 'PLN', maximumFractionDigits: 2,
@@ -113,33 +118,31 @@ export async function generatePvOfferPdfProgrammatic(
   doc.setFillColor(...C.gold);
   doc.rect(0, 0, PW, 1, 'F');
 
-  // Hero Image as background in header (right side)
+  // Hero Image (right side)
   if (heroDataUrl) {
-    const heroX = 120;
-    const heroW = 90;
+    const format = getImageFormat(heroDataUrl);
+    const heroX = 118;
+    const heroW = 92;
     const heroH = headH - 1;
-    doc.addImage(heroDataUrl, 'PNG', heroX, 1, heroW, heroH, undefined, 'FAST');
+    doc.addImage(heroDataUrl, format, heroX, 1, heroW, heroH, undefined, 'FAST');
     
-    // Dark overlay for readability
-    // @ts-ignore – jsPDF GState is often not typed correctly in all versions
+    // Dark overlay (reduced opacity for better visibility)
+    // @ts-ignore
     if (typeof (doc as any).GState === 'function') {
-      const gState = new (doc as any).GState({ opacity: 0.65 });
+      const gState = new (doc as any).GState({ opacity: 0.40 });
       doc.setGState(gState);
       doc.setFillColor(...C.dark);
       doc.rect(heroX, 1, heroW, heroH, 'F');
       doc.setGState(new (doc as any).GState({ opacity: 1 }));
-    } else {
-      // Fallback if GState not available: solid dark block with slightly less width
-      doc.setFillColor(...C.dark);
-      doc.rect(heroX, 1, heroW / 2, heroH, 'F');
     }
   }
 
   // Logo
   if (logoDataUrl) {
-    const logoH = 12;
-    const logoW = 36; // Approx 3:1 ratio for Metical logo
-    doc.addImage(logoDataUrl, 'PNG', MX, 8, logoW, logoH, undefined, 'FAST');
+    const format = getImageFormat(logoDataUrl);
+    const logoH = 10;
+    const logoW = 42; // Proportional width for METICAL logo
+    doc.addImage(logoDataUrl, format, MX, 8, logoW, logoH, undefined, 'FAST');
   } else {
     doc.setFontSize(22);
     doc.setFont('helvetica', 'bold');

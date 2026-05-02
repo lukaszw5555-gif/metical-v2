@@ -2,7 +2,9 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import type { PvOffer, PvOfferItem } from '../types/pvOfferTypes';
 
-// ─── Polish transliteration (no custom fonts needed) ─────────
+// ─── Polish transliteration fallback ─────────────────────────
+// jsPDF built-in Helvetica does not render Polish diacritics.
+// TODO: embed font with Polish characters in a separate sprint
 const PL_MAP: Record<string, string> = {
   'ą': 'a', 'ć': 'c', 'ę': 'e', 'ł': 'l', 'ń': 'n',
   'ó': 'o', 'ś': 's', 'ź': 'z', 'ż': 'z',
@@ -15,20 +17,24 @@ function pl(text: string): string {
 
 // ─── Color tokens ────────────────────────────────────────────
 const C = {
-  dark:  [26, 26, 46]     as [number, number, number],
-  gold:  [201, 168, 76]   as [number, number, number],
-  text:  [30, 30, 58]     as [number, number, number],
-  muted: [122, 122, 154]  as [number, number, number],
-  light: [247, 247, 251]  as [number, number, number],
-  white: [255, 255, 255]  as [number, number, number],
+  dark:      [26, 26, 46]     as [number, number, number],
+  darkMid:   [35, 35, 60]     as [number, number, number],
+  gold:      [201, 168, 76]   as [number, number, number],
+  goldLight: [232, 212, 139]  as [number, number, number],
+  text:      [30, 30, 58]     as [number, number, number],
+  muted:     [122, 122, 154]  as [number, number, number],
+  light:     [245, 245, 250]  as [number, number, number],
+  border:    [230, 230, 240]  as [number, number, number],
+  white:     [255, 255, 255]  as [number, number, number],
 };
 
-// ─── Helpers ─────────────────────────────────────────────────
-const PAGE_W = 210;
-const PAGE_H = 297;
-const MX = 20; // horizontal margin
-const CONTENT_W = PAGE_W - MX * 2;
+// ─── Layout constants ────────────────────────────────────────
+const PW = 210;
+const PH = 297;
+const MX = 18;
+const CW = PW - MX * 2; // content width
 
+// ─── Helpers ─────────────────────────────────────────────────
 function fmtCurrency(value: number): string {
   return new Intl.NumberFormat('pl-PL', {
     style: 'currency', currency: 'PLN', maximumFractionDigits: 2,
@@ -48,89 +54,138 @@ function getStorageKwh(items: PvOfferItem[]): number {
     .reduce((s, i) => s + (i.capacity_kwh || 0) * i.quantity, 0);
 }
 
-const OFFER_TYPE_DISPLAY: Record<string, string> = {
+const OFFER_TYPE_PL: Record<string, string> = {
   pv: 'Fotowoltaika',
   pv_me: 'Fotowoltaika + Magazyn energii',
   me: 'Magazyn energii',
   individual: 'Oferta indywidualna',
 };
 
-// ─── Horizontal line helper ──────────────────────────────────
-function hLine(doc: jsPDF, y: number, color: [number, number, number] = C.light) {
-  doc.setDrawColor(...color);
-  doc.setLineWidth(0.3);
-  doc.line(MX, y, PAGE_W - MX, y);
-}
-
-// ─── Page footer (called on each page) ──────────────────────
-function addFooter(doc: jsPDF) {
-  const y = PAGE_H - 12;
-  doc.setFontSize(7);
-  doc.setTextColor(...C.muted);
-  doc.text(pl('METICAL Sp. z o.o.'), PAGE_W / 2, y, { align: 'center' });
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  PAGE 1 — COVER
-// ═══════════════════════════════════════════════════════════════
-function drawCover(doc: jsPDF, offer: PvOffer, items: PvOfferItem[]) {
-  // ─── Dark header block ─────────────────────────────
-  doc.setFillColor(...C.dark);
-  doc.rect(0, 0, PAGE_W, 120, 'F');
-
-  // Company name
-  doc.setFontSize(28);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...C.gold);
-  doc.text('METICAL', MX, 36);
-
-  // Subtitle
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(255, 255, 255, 0.7);
-  doc.text(pl('Oferta handlowa'), MX, 46);
-
-  // Offer type badge
-  const typeLabel = pl(OFFER_TYPE_DISPLAY[offer.offer_type] || offer.offer_type);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...C.gold);
-  const badgeW = doc.getTextWidth(typeLabel) + 12;
+// ─── Decorative helpers ──────────────────────────────────────
+function goldLine(doc: jsPDF, y: number, x1 = MX, x2 = PW - MX) {
   doc.setDrawColor(...C.gold);
   doc.setLineWidth(0.4);
-  doc.roundedRect(MX, 52, badgeW, 8, 2, 2, 'S');
-  doc.text(typeLabel, MX + 6, 57.5);
+  doc.line(x1, y, x2, y);
+}
 
-  // Meta info
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(220, 220, 230);
-  let metaY = 72;
-  const metaLine = (label: string, value: string) => {
-    doc.setFont('helvetica', 'bold');
-    doc.text(pl(label + ':'), MX, metaY);
-    doc.setFont('helvetica', 'normal');
-    doc.text(pl(value), MX + 28, metaY);
-    metaY += 6;
-  };
-  metaLine('Nr', offer.offer_number || '--');
-  metaLine('Data', fmtDate(offer.created_at));
-  if (offer.valid_until) metaLine('Wazna do', fmtDate(offer.valid_until));
-  metaLine('Klient', offer.customer_name);
+function subtleLine(doc: jsPDF, y: number, x1 = MX, x2 = PW - MX) {
+  doc.setDrawColor(...C.border);
+  doc.setLineWidth(0.2);
+  doc.line(x1, y, x2, y);
+}
 
-  // ─── Price card ────────────────────────────────────
-  const cardY = 135;
-  const cardH = 55;
-  doc.setFillColor(...C.dark);
-  doc.roundedRect(MX, cardY, CONTENT_W, cardH, 4, 4, 'F');
-
-  // Price label
-  doc.setFontSize(9);
+function sectionTitle(doc: jsPDF, title: string, y: number): number {
+  doc.setFontSize(8.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.gold);
-  doc.text(pl('CENA KONCOWA BRUTTO'), PAGE_W / 2, cardY + 16, { align: 'center' });
+  doc.text(pl(title), MX, y);
+  goldLine(doc, y + 2);
+  return y + 7;
+}
 
-  // Price amount — use saved price_gross, fallback to calculation
+// ─── Compact footer bar ─────────────────────────────────────
+function drawFooterBar(doc: jsPDF) {
+  const y = PH - 10;
+  doc.setFillColor(...C.dark);
+  doc.rect(0, y, PW, 10, 'F');
+  doc.setFontSize(6.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...C.gold);
+  doc.text('METICAL Sp. z o.o.', PW / 2, y + 6, { align: 'center' });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PAGE 1 — PREMIUM COVER
+// ═══════════════════════════════════════════════════════════════
+function drawCover(doc: jsPDF, offer: PvOffer, items: PvOfferItem[]) {
+  // ─── Full dark cover block (top 110mm) ─────────────
+  doc.setFillColor(...C.dark);
+  doc.rect(0, 0, PW, 110, 'F');
+
+  // Gold accent strip at the very top
+  doc.setFillColor(...C.gold);
+  doc.rect(0, 0, PW, 2, 'F');
+
+  // Company name
+  doc.setFontSize(32);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...C.gold);
+  doc.text('METICAL', MX, 28);
+
+  // Subtitle — with thin gold line underneath
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...C.goldLight);
+  doc.text(pl('OFERTA HANDLOWA'), MX, 38);
+  goldLine(doc, 42, MX, MX + 50);
+
+  // Offer type badge
+  const typeLabel = pl(OFFER_TYPE_PL[offer.offer_type] || offer.offer_type).toUpperCase();
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...C.gold);
+  const bw = doc.getTextWidth(typeLabel) + 14;
+  doc.setDrawColor(...C.gold);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(MX, 48, bw, 9, 2, 2, 'S');
+  doc.text(typeLabel, MX + 7, 54);
+
+  // ─── Meta grid (right side + below badge) ──────────
+  doc.setFontSize(8.5);
+  const metaX = PW / 2 + 5;
+  const metaLabelX = metaX;
+  const metaValX = metaX + 25;
+  let my = 28;
+
+  const metaItem = (label: string, value: string) => {
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(160, 160, 185);
+    doc.text(pl(label), metaLabelX, my);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...C.white);
+    doc.text(pl(value), metaValX, my);
+    my += 7;
+  };
+
+  metaItem('Nr oferty', offer.offer_number || '--');
+  metaItem('Data', fmtDate(offer.created_at));
+  if (offer.valid_until) metaItem('Wazna do', fmtDate(offer.valid_until));
+  metaItem('Klient', offer.customer_name);
+
+  // ─── Customer name big on cover ────────────────────
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...C.white);
+  const nameLines = doc.splitTextToSize(pl(offer.customer_name), CW);
+  doc.text(nameLines, MX, 80);
+
+  if (offer.investment_address) {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(160, 160, 185);
+    doc.text(pl(offer.investment_address), MX, 80 + nameLines.length * 8);
+  }
+
+  // ─── Price card ────────────────────────────────────
+  const cardY = 120;
+  const cardH = 48;
+  // Card shadow effect
+  doc.setFillColor(20, 20, 40);
+  doc.roundedRect(MX + 1, cardY + 1, CW, cardH, 6, 6, 'F');
+  // Card
+  doc.setFillColor(...C.darkMid);
+  doc.roundedRect(MX, cardY, CW, cardH, 6, 6, 'F');
+  // Gold top border on card
+  doc.setFillColor(...C.gold);
+  doc.rect(MX + 20, cardY, CW - 40, 1.2, 'F');
+
+  // Price label
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...C.gold);
+  doc.text(pl('CENA KONCOWA BRUTTO'), PW / 2, cardY + 14, { align: 'center' });
+
+  // Calculate final gross
   const vatRate = offer.vat_rate || 8;
   let finalGross = offer.price_gross;
   if (!finalGross || finalGross <= 0) {
@@ -141,115 +196,122 @@ function drawCover(doc: jsPDF, offer: PvOffer, items: PvOfferItem[]) {
     finalGross = finalNet * (1 + vatRate / 100);
   }
 
-  doc.setFontSize(28);
+  doc.setFontSize(26);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.white);
-  doc.text(pl(fmtCurrency(finalGross)), PAGE_W / 2, cardY + 34, { align: 'center' });
+  doc.text(pl(fmtCurrency(finalGross)), PW / 2, cardY + 30, { align: 'center' });
 
-  // VAT info
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(180, 180, 200);
-  doc.text(pl(`Cena zawiera VAT ${vatRate}%`), PAGE_W / 2, cardY + 44, { align: 'center' });
+  doc.setTextColor(150, 150, 175);
+  doc.text(pl(`Cena zawiera VAT ${vatRate}%`), PW / 2, cardY + 40, { align: 'center' });
 
-  // ─── Scope summary bullets ────────────────────────
+  // ─── Scope badges ─────────────────────────────────
   const storageKwh = getStorageKwh(items);
   const badges: string[] = [];
   if (offer.pv_power_kw && offer.pv_power_kw > 0) badges.push(`${offer.pv_power_kw} kWp`);
-  if (offer.panel_count) badges.push(`${offer.panel_count} paneli`);
+  if (offer.panel_count) badges.push(pl(`${offer.panel_count} paneli`));
   if (storageKwh > 0) badges.push(`Magazyn ${storageKwh.toFixed(1)} kWh`);
-  badges.push('Dostawa komponentow');
-  badges.push('Montaz i uruchomienie');
-  badges.push('Konfiguracja systemu');
+  badges.push(pl('Dostawa komponentow'));
+  badges.push(pl('Montaz i uruchomienie'));
+  badges.push(pl('Konfiguracja systemu'));
 
   let bx = MX;
-  let by = cardY + cardH + 16;
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(...C.text);
+  let by = cardY + cardH + 14;
+  doc.setFontSize(7.5);
 
   for (const badge of badges) {
-    const txt = pl(badge);
-    const tw = doc.getTextWidth(txt) + 10;
-    if (bx + tw > PAGE_W - MX) { bx = MX; by += 9; }
-    // Badge background
+    const tw = doc.getTextWidth(badge) + 14;
+    if (bx + tw > PW - MX) { bx = MX; by += 10; }
+    // Pill bg
     doc.setFillColor(...C.light);
-    doc.roundedRect(bx, by - 5, tw, 7, 2, 2, 'F');
+    doc.setDrawColor(...C.border);
+    doc.setLineWidth(0.2);
+    doc.roundedRect(bx, by - 5.5, tw, 8, 3, 3, 'FD');
     // Gold dot
     doc.setFillColor(...C.gold);
-    doc.circle(bx + 4, by - 1.5, 1.2, 'F');
+    doc.circle(bx + 5, by - 1.5, 1.5, 'F');
     // Text
+    doc.setFont('helvetica', 'normal');
     doc.setTextColor(...C.text);
-    doc.text(txt, bx + 8, by - 0.5);
+    doc.text(badge, bx + 9, by);
     bx += tw + 4;
   }
 
-  addFooter(doc);
+  drawFooterBar(doc);
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  PAGE 2 — SCOPE & PARAMETERS
+//  PAGE 2 — SCOPE & PARAMETERS (two-column info + table)
 // ═══════════════════════════════════════════════════════════════
 function drawScope(doc: jsPDF, offer: PvOffer, items: PvOfferItem[]) {
-  let y = 20;
+  // Gold accent strip
+  doc.setFillColor(...C.gold);
+  doc.rect(0, 0, PW, 1.5, 'F');
 
-  // ─── Section: Customer data ────────────────────────
-  doc.setFontSize(9);
+  let y = 14;
+
+  // ─── Two-column info cards ─────────────────────────
+  const colW = (CW - 8) / 2;
+  const leftX = MX;
+  const rightX = MX + colW + 8;
+
+  // Card backgrounds
+  doc.setFillColor(...C.light);
+  doc.roundedRect(leftX, y, colW, 60, 3, 3, 'F');
+  doc.roundedRect(rightX, y, colW, 60, 3, 3, 'F');
+
+  // Left card: Customer data
+  let ly = y + 7;
+  doc.setFontSize(7.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.gold);
-  doc.text(pl('DANE KLIENTA'), MX, y);
-  y += 3;
-  hLine(doc, y);
-  y += 6;
+  doc.text(pl('DANE KLIENTA'), leftX + 8, ly);
+  goldLine(doc, ly + 2, leftX + 8, leftX + colW - 8);
+  ly += 7;
 
-  const infoRow = (label: string, value: string) => {
-    doc.setFontSize(7.5);
+  const infoItem = (x: number, yRef: { v: number }, label: string, value: string) => {
+    doc.setFontSize(6.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...C.muted);
-    doc.text(pl(label), MX, y);
-    doc.setFontSize(9);
+    doc.text(pl(label), x + 8, yRef.v);
+    doc.setFontSize(8.5);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...C.text);
-    doc.text(pl(value), MX, y + 4.5);
-    y += 11;
+    doc.text(pl(value), x + 8, yRef.v + 3.5);
+    yRef.v += 9;
   };
 
-  infoRow('Klient', offer.customer_name);
-  if (offer.customer_phone) infoRow('Telefon', offer.customer_phone);
-  if (offer.customer_email) infoRow('E-mail', offer.customer_email);
-  if (offer.customer_city) infoRow('Miejscowosc', offer.customer_city);
-  if (offer.investment_address) infoRow('Adres inwestycji', offer.investment_address);
+  const lyRef = { v: ly };
+  infoItem(leftX, lyRef, 'Klient', offer.customer_name);
+  if (offer.customer_phone) infoItem(leftX, lyRef, 'Telefon', offer.customer_phone);
+  if (offer.customer_email) infoItem(leftX, lyRef, 'E-mail', offer.customer_email);
+  if (offer.customer_city) infoItem(leftX, lyRef, pl('Miejscowosc'), offer.customer_city);
+  if (offer.investment_address) infoItem(leftX, lyRef, pl('Adres inwestycji'), offer.investment_address);
 
-  y += 4;
-
-  // ─── Section: Technical parameters ─────────────────
-  doc.setFontSize(9);
+  // Right card: Technical parameters
+  let ry = y + 7;
+  doc.setFontSize(7.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.gold);
-  doc.text(pl('PARAMETRY TECHNICZNE'), MX, y);
-  y += 3;
-  hLine(doc, y);
-  y += 6;
+  doc.text(pl('PARAMETRY TECHNICZNE'), rightX + 8, ry);
+  goldLine(doc, ry + 2, rightX + 8, rightX + colW - 8);
+  ry += 7;
 
+  const ryRef = { v: ry };
   const storageKwh = getStorageKwh(items);
 
-  infoRow('Moc instalacji', `${offer.pv_power_kw} kWp`);
-  if (offer.panel_count) infoRow('Liczba paneli', `${offer.panel_count} szt.`);
-  if (offer.panel_power_w) infoRow('Moc panelu', `${offer.panel_power_w} W`);
-  if (storageKwh > 0) infoRow('Magazyn energii', `${storageKwh.toFixed(1)} kWh`);
-  if (offer.inverter_name) infoRow('Falownik', offer.inverter_name);
+  infoItem(rightX, ryRef, 'Moc instalacji', `${offer.pv_power_kw} kWp`);
+  if (offer.panel_count) infoItem(rightX, ryRef, 'Liczba paneli', `${offer.panel_count} szt.`);
+  if (offer.panel_power_w) infoItem(rightX, ryRef, 'Moc panelu', `${offer.panel_power_w} W`);
+  if (storageKwh > 0) infoItem(rightX, ryRef, 'Magazyn energii', `${storageKwh.toFixed(1)} kWh`);
+  if (offer.inverter_name) infoItem(rightX, ryRef, 'Falownik', offer.inverter_name);
 
-  y += 4;
+  y += 68;
 
-  // ─── Section: Scope table ──────────────────────────
+  // ─── Scope table ───────────────────────────────────
   if (items.length > 0) {
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...C.gold);
-    doc.text(pl('ZAKRES DOSTAWY'), MX, y);
-    y += 3;
-    hLine(doc, y);
-    y += 4;
+    y = sectionTitle(doc, 'ZAKRES DOSTAWY', y);
 
     autoTable(doc, {
       startY: y,
@@ -257,137 +319,160 @@ function drawScope(doc: jsPDF, offer: PvOffer, items: PvOfferItem[]) {
       head: [[
         pl('Element / zakres'),
         pl('Producent'),
-        pl('Ilosc'),
+        { content: pl('Ilosc'), styles: { halign: 'right' as const } },
         'J.m.',
       ]],
       body: items.map(item => [
         pl(item.trade_name),
         pl(item.manufacturer || '--'),
-        String(item.quantity),
+        { content: String(item.quantity), styles: { halign: 'right' as const } },
         pl(item.unit),
       ]),
       styles: {
         fontSize: 8,
-        cellPadding: 3,
+        cellPadding: { top: 3, right: 4, bottom: 3, left: 4 },
         textColor: C.text,
-        lineColor: C.light,
-        lineWidth: 0.3,
+        lineColor: C.border,
+        lineWidth: 0.15,
       },
       headStyles: {
         fillColor: C.dark,
         textColor: C.white,
         fontStyle: 'bold',
         fontSize: 7.5,
+        cellPadding: { top: 4, right: 4, bottom: 4, left: 4 },
       },
       alternateRowStyles: {
         fillColor: C.light,
       },
       columnStyles: {
         0: { cellWidth: 'auto' },
-        1: { cellWidth: 40 },
-        2: { cellWidth: 18, halign: 'right' },
-        3: { cellWidth: 18 },
+        1: { cellWidth: 38 },
+        2: { cellWidth: 16 },
+        3: { cellWidth: 16 },
       },
     });
   }
 
-  addFooter(doc);
+  drawFooterBar(doc);
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  PAGE 3 — TERMS & CONDITIONS
+//  PAGE 3 — TERMS, SIGNATURES, FOOTER
 // ═══════════════════════════════════════════════════════════════
 function drawTerms(doc: jsPDF, offer: PvOffer) {
-  let y = 20;
+  // Gold accent strip
+  doc.setFillColor(...C.gold);
+  doc.rect(0, 0, PW, 1.5, 'F');
 
-  // Header
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...C.gold);
-  doc.text(pl('WARUNKI HANDLOWE I KOLEJNY KROK'), MX, y);
-  y += 3;
-  hLine(doc, y);
-  y += 10;
+  let y = 14;
+  y = sectionTitle(doc, 'WARUNKI HANDLOWE I KOLEJNY KROK', y);
+  y += 4;
 
-  // Terms grid
-  const termRow = (label: string, value: string) => {
-    doc.setFontSize(7.5);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...C.muted);
-    doc.text(pl(label), MX, y);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...C.text);
-    doc.text(pl(value), MX, y + 5);
-    y += 14;
-  };
+  // Terms cards — two columns
+  const colW = (CW - 8) / 2;
 
-  termRow('Waznosc oferty', offer.valid_until ? fmtDate(offer.valid_until) : pl('Do potwierdzenia'));
-  termRow('Czas realizacji', pl('Do ustalenia po akceptacji oferty'));
-
-  y += 2;
-  doc.setFontSize(9);
+  // Card 1: Validity
+  doc.setFillColor(...C.light);
+  doc.roundedRect(MX, y, colW, 22, 3, 3, 'F');
+  doc.setFontSize(6.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...C.muted);
+  doc.text(pl('WAZNOSC OFERTY'), MX + 8, y + 8);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.text);
-  doc.text(pl('Kolejny krok:'), MX, y);
+  doc.text(offer.valid_until ? fmtDate(offer.valid_until) : pl('Do potwierdzenia'), MX + 8, y + 16);
+
+  // Card 2: Timeline
+  doc.setFillColor(...C.light);
+  doc.roundedRect(MX + colW + 8, y, colW, 22, 3, 3, 'F');
+  doc.setFontSize(6.5);
   doc.setFont('helvetica', 'normal');
-  y += 5;
+  doc.setTextColor(...C.muted);
+  doc.text(pl('CZAS REALIZACJI'), MX + colW + 16, y + 8);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...C.text);
+  doc.text(pl('Do ustalenia po akceptacji'), MX + colW + 16, y + 16);
+
+  y += 32;
+
+  // Next step
+  doc.setFillColor(...C.light);
+  doc.roundedRect(MX, y, CW, 20, 3, 3, 'F');
+  doc.setFontSize(6.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...C.muted);
+  doc.text(pl('KOLEJNY KROK'), MX + 8, y + 8);
   doc.setFontSize(9);
-  doc.text(pl('Potwierdzenie zakresu, dostepnosci komponentow i terminu montazu.'), MX, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...C.text);
+  doc.text(pl('Potwierdzenie zakresu, dostepnosci komponentow i terminu montazu.'), MX + 8, y + 15);
+
+  y += 28;
 
   // ─── Offer note ────────────────────────────────────
   if (offer.offer_note) {
-    y += 14;
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...C.gold);
-    doc.text(pl('UWAGI'), MX, y);
-    y += 3;
-    hLine(doc, y);
-    y += 6;
+    y = sectionTitle(doc, 'UWAGI', y);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...C.text);
-    const noteLines = doc.splitTextToSize(pl(offer.offer_note), CONTENT_W);
+    const noteLines = doc.splitTextToSize(pl(offer.offer_note), CW);
     doc.text(noteLines, MX, y);
-    y += noteLines.length * 4;
+    y += noteLines.length * 4 + 8;
   }
 
   // ─── Signatures ────────────────────────────────────
-  y = Math.max(y + 20, 190);
-  hLine(doc, y);
-  y += 10;
-
-  const sigW = CONTENT_W / 2 - 10;
-
-  // Left — sales rep
-  doc.setDrawColor(...C.muted);
-  doc.setLineWidth(0.3);
-  doc.line(MX, y + 20, MX + sigW, y + 20);
-  doc.setFontSize(8);
-  doc.setTextColor(...C.muted);
-  doc.text(pl('Podpis handlowca'), MX + sigW / 2, y + 26, { align: 'center' });
-
-  // Right — client
-  const rx = PAGE_W - MX - sigW;
-  doc.line(rx, y + 20, rx + sigW, y + 20);
-  doc.text(pl('Podpis klienta'), rx + sigW / 2, y + 26, { align: 'center' });
-
-  // ─── Disclaimer ────────────────────────────────────
-  y = PAGE_H - 30;
-  doc.setFillColor(...C.dark);
-  doc.rect(0, y, PAGE_W, 30, 'F');
+  y = Math.max(y + 10, 180);
+  subtleLine(doc, y);
+  y += 6;
 
   doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...C.muted);
+  doc.text(pl('Miejsce na podpisy'), PW / 2, y, { align: 'center' });
+  y += 8;
+
+  const sigW = CW / 2 - 14;
+  const sigLx = MX + 4;
+  const sigRx = PW - MX - sigW - 4;
+
+  // Signature boxes
+  doc.setFillColor(...C.light);
+  doc.roundedRect(sigLx, y, sigW, 30, 3, 3, 'F');
+  doc.roundedRect(sigRx, y, sigW, 30, 3, 3, 'F');
+
+  // Sig lines inside boxes
+  doc.setDrawColor(...C.muted);
+  doc.setLineWidth(0.3);
+  doc.line(sigLx + 10, y + 20, sigLx + sigW - 10, y + 20);
+  doc.line(sigRx + 10, y + 20, sigRx + sigW - 10, y + 20);
+
+  doc.setFontSize(7);
+  doc.setTextColor(...C.muted);
+  doc.text(pl('Podpis handlowca'), sigLx + sigW / 2, y + 26, { align: 'center' });
+  doc.text(pl('Podpis klienta'), sigRx + sigW / 2, y + 26, { align: 'center' });
+
+  // ─── Dark footer ───────────────────────────────────
+  const footY = PH - 28;
+  doc.setFillColor(...C.dark);
+  doc.rect(0, footY, PW, 28, 'F');
+  // Gold accent
+  doc.setFillColor(...C.gold);
+  doc.rect(0, footY, PW, 1, 'F');
+
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.gold);
-  doc.text(pl('METICAL Sp. z o.o.'), PAGE_W / 2, y + 10, { align: 'center' });
+  doc.text('METICAL Sp. z o.o.', PW / 2, footY + 10, { align: 'center' });
 
+  doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(180, 180, 200);
-  const disclaimer = pl('Oferta ma charakter informacyjny i wymaga potwierdzenia dostepnosci komponentow oraz warunkow montazu po wizji lokalnej lub analizie technicznej.');
-  const dLines = doc.splitTextToSize(disclaimer, CONTENT_W - 20);
-  doc.text(dLines, PAGE_W / 2, y + 16, { align: 'center' });
+  doc.setTextColor(160, 160, 185);
+  const disc = pl('Oferta ma charakter informacyjny i wymaga potwierdzenia dostepnosci komponentow oraz warunkow montazu po wizji lokalnej lub analizie technicznej.');
+  const dLines = doc.splitTextToSize(disc, CW - 20);
+  doc.text(dLines, PW / 2, footY + 17, { align: 'center' });
 }
 
 // ═══════════════════════════════════════════════════════════════

@@ -4,10 +4,10 @@ import { getPvOfferById } from '../services/pvOfferService';
 import { getPvOfferItems } from '../services/pvOfferItemsService';
 import { generatePvOfferPdfProgrammatic } from '../services/generatePvOfferPdf';
 import { exportElementToPdf } from '../services/exportPvOfferPdf';
+import { exportPvOfferServerPdf } from '../services/exportPvOfferServerPdf';
 import type { PvOffer, PvOfferItem } from '../types/pvOfferTypes';
 import { PV_OFFER_TYPE_LABELS } from '../types/pvOfferTypes';
 import { Loader2, AlertCircle, Printer, ArrowLeft, Download } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
 import '../styles/pvOfferPrint.css';
 
 const OFFER_TYPE_DISPLAY: Record<string, string> = {
@@ -111,70 +111,28 @@ export default function PvOfferPrintPage() {
           <button
             disabled={exporting}
             onClick={async () => {
-              if (!offer) return;
+              if (!offer || !docRef.current) return;
               setExporting(true);
               try {
                 const slug = (offer.offer_number || offer.id).replace(/[\s/\\]+/g, '-');
-                const isMobilePdfDevice = window.innerWidth < 768 || /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
-                
-                if (isMobilePdfDevice) {
-                  try {
-                    // 1. Prepare filtered data (NO internal pricing/costs)
-                    const payload = {
-                      offer_number: offer.offer_number,
-                      offer_type: offer.offer_type,
-                      customer_name: offer.customer_name,
-                      customer_phone: offer.customer_phone,
-                      customer_email: offer.customer_email,
-                      customer_city: offer.customer_city,
-                      investment_address: offer.investment_address,
-                      pv_power_kw: offer.pv_power_kw,
-                      panel_power_w: offer.panel_power_w,
-                      panel_count: offer.panel_count,
-                      inverter_name: offer.inverter_name,
-                      valid_until: offer.valid_until,
-                      created_at: offer.created_at,
-                      vat_rate: offer.vat_rate,
-                      price_gross: offer.price_gross,
-                      offer_note: offer.offer_note,
-                      items: items.map(i => ({
-                        category: i.category,
-                        manufacturer: i.manufacturer,
-                        trade_name: i.trade_name,
-                        unit: i.unit,
-                        quantity: i.quantity,
-                        power_w: i.power_w,
-                        capacity_kwh: i.capacity_kwh
-                      }))
-                    };
+                const filename = `oferta-pv-${slug}`;
 
-                    // 2. Call Supabase Edge Function
-                    const { data, error } = await supabase.functions.invoke('generate-pv-pdf', {
-                      body: payload
-                    });
-
-                    if (error) throw error;
-
-                    // 3. Download the blob
-                    const blob = new Blob([data], { type: 'application/pdf' });
-                    const url = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `oferta-pv-${slug}.pdf`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    window.URL.revokeObjectURL(url);
-                    
-                  } catch (edgeErr) {
-                    console.warn('[PDF] Edge Function failed, using local fallback:', edgeErr);
-                    // Fallback to local generator
-                    const pdf = await generatePvOfferPdfProgrammatic(offer, items);
-                    pdf.save(`oferta-pv-${slug}.pdf`);
+                try {
+                  // 1. Primary path: Server-side premium PDF (Universal)
+                  await exportPvOfferServerPdf(docRef.current, filename);
+                } catch (serverErr) {
+                  console.warn('[PDF] Server-side export failed, falling back:', serverErr);
+                  
+                  if (window.innerWidth < 768) {
+                    // Mobile fallback: Show alert instead of silent programmatic fallback
+                    if (confirm('Generowanie PDF premium nie powiodło się. Czy chcesz pobrać uproszczoną wersję awaryjną?')) {
+                      const pdf = await generatePvOfferPdfProgrammatic(offer, items);
+                      pdf.save(`${filename}.pdf`);
+                    }
+                  } else {
+                    // Desktop fallback: html2canvas
+                    await exportElementToPdf(docRef.current, filename);
                   }
-                } else {
-                  if (!docRef.current) throw new Error('Brak dokumentu PDF');
-                  await exportElementToPdf(docRef.current, `oferta-pv-${slug}`);
                 }
               } catch (err) {
                 console.error('[PDF]', err);
@@ -191,8 +149,8 @@ export default function PvOfferPrintPage() {
 
       {/* Mobile info — screen only */}
       {isMobile && (
-        <div className="no-print" style={{ maxWidth: 820, margin: '0 auto 12px', padding: '12px 16px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 12, fontSize: 12, color: '#92400e', textAlign: 'center', lineHeight: 1.6 }}>
-          Na telefonie pobierana jest uproszczona wersja PDF. Wersję premium pobierz z komputera.
+        <div className="no-print" style={{ maxWidth: 820, margin: '0 auto 12px', padding: '12px 16px', background: '#ecfdf5', border: '1px solid #d1fae5', borderRadius: 12, fontSize: 12, color: '#065f46', textAlign: 'center', lineHeight: 1.6 }}>
+          Pobieranie oferty w jakości premium jest teraz dostępne również na telefonie.
         </div>
       )}
 

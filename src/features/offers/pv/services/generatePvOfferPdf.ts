@@ -98,44 +98,45 @@ function drawFooterBar(doc: jsPDF) {
 //  PAGE 1 — PREMIUM COVER
 // ═══════════════════════════════════════════════════════════════
 function drawCover(doc: jsPDF, offer: PvOffer, items: PvOfferItem[]) {
-  // ─── Full dark cover block (top 110mm) ─────────────
+  // ─── Compact dark cover block (85mm) ─────────────
+  const coverH = 85;
   doc.setFillColor(...C.dark);
-  doc.rect(0, 0, PW, 110, 'F');
+  doc.rect(0, 0, PW, coverH, 'F');
 
   // Gold accent strip at the very top
   doc.setFillColor(...C.gold);
   doc.rect(0, 0, PW, 2, 'F');
 
   // Company name
-  doc.setFontSize(32);
+  doc.setFontSize(28); // Slightly smaller
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.gold);
-  doc.text('METICAL', MX, 28);
+  doc.text('METICAL', MX, 24);
 
   // Subtitle — with thin gold line underneath
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...C.goldLight);
-  doc.text(pl('OFERTA HANDLOWA'), MX, 38);
-  goldLine(doc, 42, MX, MX + 50);
+  doc.text(pl('OFERTA HANDLOWA'), MX, 32);
+  goldLine(doc, 35, MX, MX + 40);
 
   // Offer type badge
   const typeLabel = pl(OFFER_TYPE_PL[offer.offer_type] || offer.offer_type).toUpperCase();
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.gold);
-  const bw = doc.getTextWidth(typeLabel) + 14;
+  const bw = doc.getTextWidth(typeLabel) + 12;
   doc.setDrawColor(...C.gold);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(MX, 48, bw, 9, 2, 2, 'S');
-  doc.text(typeLabel, MX + 7, 54);
+  doc.setLineWidth(0.4);
+  doc.roundedRect(MX, 40, bw, 8, 1.5, 1.5, 'S');
+  doc.text(typeLabel, MX + 6, 45.5);
 
-  // ─── Meta grid (right side + below badge) ──────────
-  doc.setFontSize(8.5);
-  const metaX = PW / 2 + 5;
+  // ─── Meta grid ────────────────────────────────────
+  doc.setFontSize(8);
+  const metaX = PW / 2 + 15;
   const metaLabelX = metaX;
-  const metaValX = metaX + 25;
-  let my = 28;
+  const metaValX = metaX + 22;
+  let my = 24;
 
   const metaItem = (label: string, value: string) => {
     doc.setFont('helvetica', 'normal');
@@ -144,7 +145,7 @@ function drawCover(doc: jsPDF, offer: PvOffer, items: PvOfferItem[]) {
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...C.white);
     doc.text(pl(value), metaValX, my);
-    my += 7;
+    my += 6;
   };
 
   metaItem('Nr oferty', offer.offer_number || '--');
@@ -153,37 +154,37 @@ function drawCover(doc: jsPDF, offer: PvOffer, items: PvOfferItem[]) {
   metaItem('Klient', offer.customer_name);
 
   // ─── Customer name big on cover ────────────────────
-  doc.setFontSize(16);
+  doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.white);
   const nameLines = doc.splitTextToSize(pl(offer.customer_name), CW);
-  doc.text(nameLines, MX, 80);
+  doc.text(nameLines, MX, 64);
 
   if (offer.investment_address) {
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(160, 160, 185);
-    doc.text(pl(offer.investment_address), MX, 80 + nameLines.length * 8);
+    doc.text(pl(offer.investment_address), MX, 64 + nameLines.length * 6);
   }
 
-  // ─── Price card ────────────────────────────────────
-  const cardY = 120;
-  const cardH = 48;
+  // ─── Price card (Moved up) ─────────────────────────
+  const cardY = 92;
+  const cardH = 42;
   // Card shadow effect
   doc.setFillColor(20, 20, 40);
-  doc.roundedRect(MX + 1, cardY + 1, CW, cardH, 6, 6, 'F');
+  doc.roundedRect(MX + 0.8, cardY + 0.8, CW, cardH, 5, 5, 'F');
   // Card
   doc.setFillColor(...C.darkMid);
-  doc.roundedRect(MX, cardY, CW, cardH, 6, 6, 'F');
+  doc.roundedRect(MX, cardY, CW, cardH, 5, 5, 'F');
   // Gold top border on card
   doc.setFillColor(...C.gold);
-  doc.rect(MX + 20, cardY, CW - 40, 1.2, 'F');
+  doc.rect(MX + 20, cardY, CW - 40, 1, 'F');
 
   // Price label
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.gold);
-  doc.text(pl('CENA KONCOWA BRUTTO'), PW / 2, cardY + 14, { align: 'center' });
+  doc.text(pl('CENA KONCOWA BRUTTO'), PW / 2, cardY + 12, { align: 'center' });
 
   // Calculate final gross
   const vatRate = offer.vat_rate || 8;
@@ -196,15 +197,15 @@ function drawCover(doc: jsPDF, offer: PvOffer, items: PvOfferItem[]) {
     finalGross = finalNet * (1 + vatRate / 100);
   }
 
-  doc.setFontSize(26);
+  doc.setFontSize(24);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.white);
-  doc.text(pl(fmtCurrency(finalGross)), PW / 2, cardY + 30, { align: 'center' });
+  doc.text(pl(fmtCurrency(finalGross)), PW / 2, cardY + 26, { align: 'center' });
 
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(150, 150, 175);
-  doc.text(pl(`Cena zawiera VAT ${vatRate}%`), PW / 2, cardY + 40, { align: 'center' });
+  doc.text(pl(`Cena zawiera VAT ${vatRate}%`), PW / 2, cardY + 36, { align: 'center' });
 
   // ─── Scope badges ─────────────────────────────────
   const storageKwh = getStorageKwh(items);
@@ -217,69 +218,70 @@ function drawCover(doc: jsPDF, offer: PvOffer, items: PvOfferItem[]) {
   badges.push(pl('Konfiguracja systemu'));
 
   let bx = MX;
-  let by = cardY + cardH + 14;
-  doc.setFontSize(7.5);
+  let by = cardY + cardH + 10;
+  doc.setFontSize(7);
 
   for (const badge of badges) {
-    const tw = doc.getTextWidth(badge) + 14;
-    if (bx + tw > PW - MX) { bx = MX; by += 10; }
+    const tw = doc.getTextWidth(badge) + 12;
+    if (bx + tw > PW - MX) { bx = MX; by += 8; }
     // Pill bg
     doc.setFillColor(...C.light);
     doc.setDrawColor(...C.border);
-    doc.setLineWidth(0.2);
-    doc.roundedRect(bx, by - 5.5, tw, 8, 3, 3, 'FD');
+    doc.setLineWidth(0.15);
+    doc.roundedRect(bx, by - 5, tw, 7, 2.5, 2.5, 'FD');
     // Gold dot
     doc.setFillColor(...C.gold);
-    doc.circle(bx + 5, by - 1.5, 1.5, 'F');
+    doc.circle(bx + 4, by - 1.5, 1.2, 'F');
     // Text
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...C.text);
-    doc.text(badge, bx + 9, by);
-    bx += tw + 4;
+    doc.text(badge, bx + 7.5, by - 0.2);
+    bx += tw + 3;
   }
 
   drawFooterBar(doc);
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  PAGE 2 — SCOPE & PARAMETERS (two-column info + table)
+//  PAGE 2 — SCOPE & PARAMETERS (Compact)
 // ═══════════════════════════════════════════════════════════════
-function drawScope(doc: jsPDF, offer: PvOffer, items: PvOfferItem[]) {
+function drawScope(doc: jsPDF, offer: PvOffer, items: PvOfferItem[]): number {
   // Gold accent strip
   doc.setFillColor(...C.gold);
-  doc.rect(0, 0, PW, 1.5, 'F');
+  doc.rect(0, 0, PW, 1.2, 'F');
 
-  let y = 14;
+  let y = 10;
 
   // ─── Two-column info cards ─────────────────────────
-  const colW = (CW - 8) / 2;
+  const colW = (CW - 6) / 2;
   const leftX = MX;
-  const rightX = MX + colW + 8;
+  const rightX = MX + colW + 6;
 
   // Card backgrounds
+  const cardH = 54;
   doc.setFillColor(...C.light);
-  doc.roundedRect(leftX, y, colW, 60, 3, 3, 'F');
-  doc.roundedRect(rightX, y, colW, 60, 3, 3, 'F');
+  doc.roundedRect(leftX, y, colW, cardH, 2.5, 2.5, 'F');
+  doc.roundedRect(rightX, y, colW, cardH, 2.5, 2.5, 'F');
 
   // Left card: Customer data
-  let ly = y + 7;
+  let ly = y + 6;
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.gold);
-  doc.text(pl('DANE KLIENTA'), leftX + 8, ly);
-  goldLine(doc, ly + 2, leftX + 8, leftX + colW - 8);
+  doc.text(pl('DANE KLIENTA'), leftX + 6, ly);
+  goldLine(doc, ly + 2, leftX + 6, leftX + colW - 6);
   ly += 7;
 
   const infoItem = (x: number, yRef: { v: number }, label: string, value: string) => {
-    doc.setFontSize(6.5);
+    doc.setFontSize(6);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...C.muted);
-    doc.text(pl(label), x + 8, yRef.v);
-    doc.setFontSize(8.5);
+    doc.text(pl(label), x + 6, yRef.v);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...C.text);
-    doc.text(pl(value), x + 8, yRef.v + 3.5);
-    yRef.v += 9;
+    doc.text(pl(value), x + 6, yRef.v + 3);
+    yRef.v += 8;
   };
 
   const lyRef = { v: ly };
@@ -290,12 +292,12 @@ function drawScope(doc: jsPDF, offer: PvOffer, items: PvOfferItem[]) {
   if (offer.investment_address) infoItem(leftX, lyRef, pl('Adres inwestycji'), offer.investment_address);
 
   // Right card: Technical parameters
-  let ry = y + 7;
+  let ry = y + 6;
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.gold);
-  doc.text(pl('PARAMETRY TECHNICZNE'), rightX + 8, ry);
-  goldLine(doc, ry + 2, rightX + 8, rightX + colW - 8);
+  doc.text(pl('PARAMETRY TECHNICZNE'), rightX + 6, ry);
+  goldLine(doc, ry + 2, rightX + 6, rightX + colW - 6);
   ry += 7;
 
   const ryRef = { v: ry };
@@ -307,7 +309,7 @@ function drawScope(doc: jsPDF, offer: PvOffer, items: PvOfferItem[]) {
   if (storageKwh > 0) infoItem(rightX, ryRef, 'Magazyn energii', `${storageKwh.toFixed(1)} kWh`);
   if (offer.inverter_name) infoItem(rightX, ryRef, 'Falownik', offer.inverter_name);
 
-  y += 68;
+  y += cardH + 8;
 
   // ─── Scope table ───────────────────────────────────
   if (items.length > 0) {
@@ -329,18 +331,18 @@ function drawScope(doc: jsPDF, offer: PvOffer, items: PvOfferItem[]) {
         pl(item.unit),
       ]),
       styles: {
-        fontSize: 8,
-        cellPadding: { top: 3, right: 4, bottom: 3, left: 4 },
+        fontSize: 7.5,
+        cellPadding: { top: 2.5, right: 4, bottom: 2.5, left: 4 },
         textColor: C.text,
         lineColor: C.border,
-        lineWidth: 0.15,
+        lineWidth: 0.1,
       },
       headStyles: {
         fillColor: C.dark,
         textColor: C.white,
         fontStyle: 'bold',
-        fontSize: 7.5,
-        cellPadding: { top: 4, right: 4, bottom: 4, left: 4 },
+        fontSize: 7,
+        cellPadding: { top: 3.5, right: 4, bottom: 3.5, left: 4 },
       },
       alternateRowStyles: {
         fillColor: C.light,
@@ -348,131 +350,141 @@ function drawScope(doc: jsPDF, offer: PvOffer, items: PvOfferItem[]) {
       columnStyles: {
         0: { cellWidth: 'auto' },
         1: { cellWidth: 38 },
-        2: { cellWidth: 16 },
-        3: { cellWidth: 16 },
+        2: { cellWidth: 14 },
+        3: { cellWidth: 14 },
       },
     });
+
+    // @ts-ignore
+    y = doc.lastAutoTable.finalY;
   }
 
   drawFooterBar(doc);
+  return y;
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  PAGE 3 — TERMS, SIGNATURES, FOOTER
+//  PAGE 3 — TERMS & SIGNATURES (Compact)
 // ═══════════════════════════════════════════════════════════════
-function drawTerms(doc: jsPDF, offer: PvOffer) {
-  // Gold accent strip
-  doc.setFillColor(...C.gold);
-  doc.rect(0, 0, PW, 1.5, 'F');
+function drawTerms(doc: jsPDF, offer: PvOffer, startY?: number) {
+  let y = startY || 14;
 
-  let y = 14;
+  // If we're on the same page, add a gap
+  if (startY) y += 12;
+  else {
+    doc.setFillColor(...C.gold);
+    doc.rect(0, 0, PW, 1.2, 'F');
+  }
+
   y = sectionTitle(doc, 'WARUNKI HANDLOWE I KOLEJNY KROK', y);
-  y += 4;
+  y += 3;
 
-  // Terms cards — two columns
-  const colW = (CW - 8) / 2;
+  // Terms cards — compact
+  const colW = (CW - 6) / 2;
 
-  // Card 1: Validity
   doc.setFillColor(...C.light);
-  doc.roundedRect(MX, y, colW, 22, 3, 3, 'F');
-  doc.setFontSize(6.5);
-  doc.setFont('helvetica', 'normal');
+  doc.roundedRect(MX, y, colW, 18, 2, 2, 'F');
+  doc.setFontSize(6);
   doc.setTextColor(...C.muted);
-  doc.text(pl('WAZNOSC OFERTY'), MX + 8, y + 8);
-  doc.setFontSize(10);
+  doc.text(pl('WAZNOSC OFERTY'), MX + 6, y + 6);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.text);
-  doc.text(offer.valid_until ? fmtDate(offer.valid_until) : pl('Do potwierdzenia'), MX + 8, y + 16);
+  doc.text(offer.valid_until ? fmtDate(offer.valid_until) : pl('Do potwierdzenia'), MX + 6, y + 13);
 
-  // Card 2: Timeline
   doc.setFillColor(...C.light);
-  doc.roundedRect(MX + colW + 8, y, colW, 22, 3, 3, 'F');
-  doc.setFontSize(6.5);
-  doc.setFont('helvetica', 'normal');
+  doc.roundedRect(MX + colW + 6, y, colW, 18, 2, 2, 'F');
+  doc.setFontSize(6);
   doc.setTextColor(...C.muted);
-  doc.text(pl('CZAS REALIZACJI'), MX + colW + 16, y + 8);
-  doc.setFontSize(10);
+  doc.text(pl('CZAS REALIZACJI'), MX + colW + 12, y + 6);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.text);
-  doc.text(pl('Do ustalenia po akceptacji'), MX + colW + 16, y + 16);
+  doc.text(pl('Do ustalenia po akceptacji'), MX + colW + 12, y + 13);
 
-  y += 32;
+  y += 24;
 
   // Next step
   doc.setFillColor(...C.light);
-  doc.roundedRect(MX, y, CW, 20, 3, 3, 'F');
-  doc.setFontSize(6.5);
+  doc.roundedRect(MX, y, CW, 16, 2, 2, 'F');
+  doc.setFontSize(6);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...C.muted);
-  doc.text(pl('KOLEJNY KROK'), MX + 8, y + 8);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
+  doc.text(pl('KOLEJNY KROK'), MX + 6, y + 6);
+  doc.setFontSize(8);
   doc.setTextColor(...C.text);
-  doc.text(pl('Potwierdzenie zakresu, dostepnosci komponentow i terminu montazu.'), MX + 8, y + 15);
+  doc.text(pl('Potwierdzenie zakresu, dostepnosci komponentow i terminu montazu.'), MX + 6, y + 12);
 
-  y += 28;
+  y += 22;
 
   // ─── Offer note ────────────────────────────────────
   if (offer.offer_note) {
     y = sectionTitle(doc, 'UWAGI', y);
-    doc.setFontSize(8);
+    doc.setFontSize(7.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...C.text);
     const noteLines = doc.splitTextToSize(pl(offer.offer_note), CW);
     doc.text(noteLines, MX, y);
-    y += noteLines.length * 4 + 8;
+    y += noteLines.length * 3.8 + 6;
   }
 
-  // ─── Signatures ────────────────────────────────────
-  y = Math.max(y + 10, 180);
-  subtleLine(doc, y);
-  y += 6;
+  // ─── Signatures (Compact) ──────────────────────────
+  y = Math.max(y + 8, startY ? y : 190);
+  
+  // Don't draw signatures too low
+  if (y > PH - 65 && startY) {
+    doc.addPage();
+    y = 14;
+    doc.setFillColor(...C.gold);
+    doc.rect(0, 0, PW, 1.2, 'F');
+    drawFooterBar(doc);
+  }
 
-  doc.setFontSize(7);
+  subtleLine(doc, y);
+  y += 5;
+
+  doc.setFontSize(6.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...C.muted);
   doc.text(pl('Miejsce na podpisy'), PW / 2, y, { align: 'center' });
-  y += 8;
+  y += 6;
 
-  const sigW = CW / 2 - 14;
-  const sigLx = MX + 4;
-  const sigRx = PW - MX - sigW - 4;
+  const sigW = CW / 2 - 12;
+  const sigLx = MX + 3;
+  const sigRx = PW - MX - sigW - 3;
 
-  // Signature boxes
   doc.setFillColor(...C.light);
-  doc.roundedRect(sigLx, y, sigW, 30, 3, 3, 'F');
-  doc.roundedRect(sigRx, y, sigW, 30, 3, 3, 'F');
+  doc.roundedRect(sigLx, y, sigW, 24, 2, 2, 'F');
+  doc.roundedRect(sigRx, y, sigW, 24, 2, 2, 'F');
 
-  // Sig lines inside boxes
   doc.setDrawColor(...C.muted);
-  doc.setLineWidth(0.3);
-  doc.line(sigLx + 10, y + 20, sigLx + sigW - 10, y + 20);
-  doc.line(sigRx + 10, y + 20, sigRx + sigW - 10, y + 20);
+  doc.setLineWidth(0.2);
+  doc.line(sigLx + 8, y + 16, sigLx + sigW - 8, y + 16);
+  doc.line(sigRx + 8, y + 16, sigRx + sigW - 8, y + 16);
 
-  doc.setFontSize(7);
+  doc.setFontSize(6.5);
   doc.setTextColor(...C.muted);
-  doc.text(pl('Podpis handlowca'), sigLx + sigW / 2, y + 26, { align: 'center' });
-  doc.text(pl('Podpis klienta'), sigRx + sigW / 2, y + 26, { align: 'center' });
+  doc.text(pl('Podpis handlowca'), sigLx + sigW / 2, y + 21, { align: 'center' });
+  doc.text(pl('Podpis klienta'), sigRx + sigW / 2, y + 21, { align: 'center' });
 
-  // ─── Dark footer ───────────────────────────────────
-  const footY = PH - 28;
+  // ─── Footer Disclaimer (Moved insideTerms if same page) ──
+  const footY = PH - 26;
   doc.setFillColor(...C.dark);
-  doc.rect(0, footY, PW, 28, 'F');
-  // Gold accent
+  doc.rect(0, footY, PW, 26, 'F');
   doc.setFillColor(...C.gold);
-  doc.rect(0, footY, PW, 1, 'F');
+  doc.rect(0, footY, PW, 0.8, 'F');
 
-  doc.setFontSize(8);
+  doc.setFontSize(7.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...C.gold);
-  doc.text('METICAL Sp. z o.o.', PW / 2, footY + 10, { align: 'center' });
+  doc.text('METICAL Sp. z o.o.', PW / 2, footY + 8, { align: 'center' });
 
-  doc.setFontSize(7);
+  doc.setFontSize(6.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(160, 160, 185);
   const disc = pl('Oferta ma charakter informacyjny i wymaga potwierdzenia dostepnosci komponentow oraz warunkow montazu po wizji lokalnej lub analizie technicznej.');
-  const dLines = doc.splitTextToSize(disc, CW - 20);
-  doc.text(dLines, PW / 2, footY + 17, { align: 'center' });
+  const dLines = doc.splitTextToSize(disc, CW - 16);
+  doc.text(dLines, PW / 2, footY + 14, { align: 'center' });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -484,13 +496,23 @@ export async function generatePvOfferPdfProgrammatic(
 ): Promise<jsPDF> {
   const doc = new jsPDF('p', 'mm', 'a4');
 
+  // Page 1
   drawCover(doc, offer, items);
-  doc.addPage();
 
-  drawScope(doc, offer, items);
+  // Page 2
   doc.addPage();
+  const finalY = drawScope(doc, offer, items);
 
-  drawTerms(doc, offer);
+  // Logic: can we fit terms on page 2?
+  // We need ~80-100mm for terms and signatures.
+  // PH is 297, footer is at 271 (297-26).
+  // So we have until ~205mm to start terms safely on same page.
+  if (finalY < 195) {
+    drawTerms(doc, offer, finalY);
+  } else {
+    doc.addPage();
+    drawTerms(doc, offer);
+  }
 
   return doc;
 }

@@ -9,6 +9,7 @@ interface Props {
   items: PvOfferItemDraft[];
   onChange: (items: PvOfferItemDraft[]) => void;
   defaultVatRate: number;
+  canSeeInternalPricing: boolean;
 }
 
 let keyCounter = 0;
@@ -60,7 +61,7 @@ export function existingItemToDraft(item: { component_id: string|null; category:
   return { ...item, _key: nextKey() };
 }
 
-export default function PvOfferItemsSection({ items, onChange, defaultVatRate }: Props) {
+export default function PvOfferItemsSection({ items, onChange, defaultVatRate, canSeeInternalPricing }: Props) {
   const [showPicker, setShowPicker] = useState(false);
 
   const ic = 'w-full px-2 py-1.5 border border-surface-200 rounded-lg text-xs bg-surface-50 focus:outline-none focus:ring-1 focus:ring-primary-500/30';
@@ -113,7 +114,7 @@ export default function PvOfferItemsSection({ items, onChange, defaultVatRate }:
               <tr className="bg-surface-50 text-left text-[10px] font-semibold text-muted-500 uppercase">
                 <th className="px-2 py-1.5 w-[30%]">Nazwa</th>
                 <th className="px-2 py-1.5 w-[10%]">Ilość</th>
-                <th className="px-2 py-1.5 w-[12%]">Zakup</th>
+                {canSeeInternalPricing && <th className="px-2 py-1.5 w-[12%]">Zakup</th>}
                 <th className="px-2 py-1.5 w-[12%]">Sprzedaż</th>
                 <th className="px-2 py-1.5 w-[8%]">VAT%</th>
                 <th className="px-2 py-1.5 w-[12%] text-right">Netto</th>
@@ -146,10 +147,12 @@ export default function PvOfferItemsSection({ items, onChange, defaultVatRate }:
                         className="w-6 h-6 flex items-center justify-center rounded bg-surface-100 hover:bg-surface-200 text-muted-500 active:scale-90 transition-all"><Plus size={10} /></button>
                     </div>
                   </td>
+                  {canSeeInternalPricing && (
                   <td className="px-2 py-1.5">
                     <input type="number" step="0.01" value={item.purchase_price}
                       onChange={e => update(idx, { purchase_price: parseFloat(e.target.value) || 0 })} className={ic} />
                   </td>
+                  )}
                   <td className="px-2 py-1.5">
                     <input type="number" step="0.01" value={item.selling_price}
                       onChange={e => update(idx, { selling_price: parseFloat(e.target.value) || 0 })} className={ic} />
@@ -191,7 +194,7 @@ export default function PvOfferItemsSection({ items, onChange, defaultVatRate }:
                   <Trash2 size={12} />
                 </button>
               </div>
-              <div className="grid grid-cols-4 gap-2">
+              <div className={`grid ${canSeeInternalPricing ? 'grid-cols-4' : 'grid-cols-3'} gap-2`}>
                 <div><span className="text-[10px] text-muted-400">Ilość</span>
                   <div className="flex items-center gap-0.5 mt-0.5">
                     <button type="button" onClick={() => update(idx, { quantity: Math.max(1, item.quantity - 1) })}
@@ -202,9 +205,11 @@ export default function PvOfferItemsSection({ items, onChange, defaultVatRate }:
                     <button type="button" onClick={() => update(idx, { quantity: item.quantity + 1 })}
                       className="w-7 h-7 flex items-center justify-center rounded bg-surface-100 hover:bg-surface-200 text-muted-500 active:scale-90 transition-all"><Plus size={12} /></button>
                   </div></div>
+                {canSeeInternalPricing && (
                 <div><span className="text-[10px] text-muted-400">Zakup</span>
                   <input type="number" step="0.01" value={item.purchase_price}
                     onChange={e => update(idx, { purchase_price: parseFloat(e.target.value) || 0 })} className={ic} /></div>
+                )}
                 <div><span className="text-[10px] text-muted-400">Sprzedaż</span>
                   <input type="number" step="0.01" value={item.selling_price}
                     onChange={e => update(idx, { selling_price: parseFloat(e.target.value) || 0 })} className={ic} /></div>
@@ -216,7 +221,7 @@ export default function PvOfferItemsSection({ items, onChange, defaultVatRate }:
                 <span className="text-muted-500">Netto: {fmtPln(lineNetValue(item))}</span>
                 <span className="font-semibold text-gray-900">Brutto: {fmtPln(lineGrossValue(item))}</span>
               </div>
-              <div className="text-[10px] text-muted-400">Marża: {fmtPln(lineMarginValue(item))}</div>
+              {canSeeInternalPricing && <div className="text-[10px] text-muted-400">Marża: {fmtPln(lineMarginValue(item))}</div>}
             </div>
           ))}
         </div>

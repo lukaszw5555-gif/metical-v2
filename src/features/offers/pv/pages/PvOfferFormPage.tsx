@@ -12,8 +12,9 @@ import PvOfferSummaryPanel from '../components/PvOfferSummaryPanel';
 import PvOfferFlowChecklist from '../components/PvOfferFlowChecklist';
 import PvComponentPickerModal from '../components/PvComponentPickerModal';
 import {
-  totalNet, totalGross, totalMargin, totalMarginPercent,
+  totalNet, totalVat, totalMargin, totalMarginPercent,
   installationPowerKWp, panelCountFromItems, uniformPanelPowerW,
+  finalNetAfterAdjustments, finalGrossAfterAdjustments,
 } from '../utils/pvOfferCalculations';
 import type { SalesLead, UserProfile } from '@/types/database';
 import type { Client } from '@/features/clients/services/clientService';
@@ -33,8 +34,9 @@ export default function PvOfferFormPage() {
   const isEdit = !!id;
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const userId = user?.id ?? '';
+  const canSeeInternalPricing = profile?.role === 'admin' || profile?.role === 'administracja';
 
   const [leads, setLeads] = useState<SalesLead[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -79,6 +81,9 @@ export default function PvOfferFormPage() {
 
   // Step-based picker
   const [stepPickerStep, setStepPickerStep] = useState<PvOfferFlowStep | null>(null);
+  // Adjustment state
+  const [salesMarkupValue, setSalesMarkupValue] = useState('0');
+  const [customerDiscountValue, setCustomerDiscountValue] = useState('0');
 
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -88,16 +93,23 @@ export default function PvOfferFormPage() {
   // Derived values from items
   const itemsSummary = useMemo(() => {
     if (!hasItems) return null;
+    const baseNet = totalNet(items);
+    const baseVat = totalVat(items);
+    const markup = parseFloat(salesMarkupValue) || 0;
+    const discount = parseFloat(customerDiscountValue) || 0;
+    const vr = parseFloat(vatRate) || 8;
     return {
-      net: totalNet(items),
-      gross: totalGross(items),
+      baseNet,
+      baseVat,
+      net: finalNetAfterAdjustments(baseNet, markup, discount),
+      gross: finalGrossAfterAdjustments(baseNet, baseVat, markup, discount, vr),
       margin: totalMargin(items),
       marginPct: totalMarginPercent(items),
       powerKwp: installationPowerKWp(items),
       panels: panelCountFromItems(items),
       panelW: uniformPanelPowerW(items),
     };
-  }, [items, hasItems]);
+  }, [items, hasItems, salesMarkupValue, customerDiscountValue, vatRate]);
 
   const loadData = useCallback(async () => {
     try {
@@ -131,6 +143,8 @@ export default function PvOfferFormPage() {
         setStatus(o.status);
         setOfferType(o.offer_type || 'pv');
         setValidUntil(o.valid_until || '');
+        setSalesMarkupValue(String(o.sales_markup_value ?? 0));
+        setCustomerDiscountValue(String(o.customer_discount_value ?? 0));
         if (o.lead_id) { setSource('lead'); setSelectedLeadId(o.lead_id); }
         else if (o.client_id) { setSource('client'); setSelectedClientId(o.client_id); }
         setItems(existingItems.map(existingItemToDraft));
@@ -197,6 +211,8 @@ export default function PvOfferFormPage() {
         internal_note: internalNote.trim() || null,
         status,
         offer_type: offerType,
+        sales_markup_value: parseFloat(salesMarkupValue) || 0,
+        customer_discount_value: parseFloat(customerDiscountValue) || 0,
         valid_until: validUntil || null,
       };
 
@@ -333,11 +349,26 @@ export default function PvOfferFormPage() {
               </div>
 
               {/* ─── ITEMS SECTION ──────────────────── */}
-              <PvOfferItemsSection items={items} onChange={setItems} defaultVatRate={parseFloat(vatRate) || 23} />
+              <PvOfferItemsSection items={items} onChange={setItems} defaultVatRate={parseFloat(vatRate) || 23} canSeeInternalPricing={canSeeInternalPricing} />
+
+              {/* Adjustment section */}
+              <div className="card p-4">
+                <p className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-3">Korekta handlowa</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={label}>Narzut handlowy netto (PLN)</label>
+                    <input value={salesMarkupValue} onChange={e => setSalesMarkupValue(e.target.value)} className={ic} type="number" step="0.01" min="0" placeholder="0" />
+                  </div>
+                  <div>
+                    <label className={label}>Rabat klienta netto (PLN)</label>
+                    <input value={customerDiscountValue} onChange={e => setCustomerDiscountValue(e.target.value)} className={ic} type="number" step="0.01" min="0" placeholder="0" />
+                  </div>
+                </div>
+              </div>
 
               {/* Summary on mobile (below items) */}
               <div className="md:hidden">
-                <PvOfferSummaryPanel items={items} />
+                <PvOfferSummaryPanel items={items} canSeeInternalPricing={canSeeInternalPricing} salesMarkupValue={parseFloat(salesMarkupValue) || 0} customerDiscountValue={parseFloat(customerDiscountValue) || 0} offerVatRate={parseFloat(vatRate) || 8} />
               </div>
 
               {/* Installation (manual fallback when no items) */}
@@ -376,10 +407,12 @@ export default function PvOfferFormPage() {
                       <div><label className={label}>VAT (%)</label><input value={vatRate} onChange={e => handleVatChange(e.target.value)} className={ic} type="number" step="1" /></div>
                       <div><label className={label}>Brutto (PLN)</label><input value={priceGross} readOnly className={`${ic} bg-surface-100 font-semibold`} /></div>
                     </div>
+                    {canSeeInternalPricing && (
                     <div className="grid grid-cols-2 gap-3">
                       <div><label className={label}>Marża (PLN)</label><input value={marginValue} onChange={e => setMarginValue(e.target.value)} className={ic} type="number" step="0.01" /></div>
                       <div><label className={label}>Marża (%)</label><input value={marginPercent} onChange={e => setMarginPercent(e.target.value)} className={ic} type="number" step="0.01" /></div>
                     </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -413,7 +446,7 @@ export default function PvOfferFormPage() {
             {/* Right column — sticky summary (desktop) */}
             <div className="hidden md:block md:w-72 md:shrink-0">
               <div className="md:sticky md:top-4">
-                <PvOfferSummaryPanel items={items} />
+                <PvOfferSummaryPanel items={items} canSeeInternalPricing={canSeeInternalPricing} salesMarkupValue={parseFloat(salesMarkupValue) || 0} customerDiscountValue={parseFloat(customerDiscountValue) || 0} offerVatRate={parseFloat(vatRate) || 8} />
               </div>
             </div>
           </div>

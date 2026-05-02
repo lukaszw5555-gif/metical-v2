@@ -1,15 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/layout/PageHeader';
+import { useAuth } from '@/context/AuthContext';
 import { getPvOfferById } from '../services/pvOfferService';
 import { getPvOfferItems } from '../services/pvOfferItemsService';
 import type { PvOffer, PvOfferItem } from '../types/pvOfferTypes';
 import { PV_OFFER_STATUS_LABELS, PV_OFFER_STATUS_COLORS, PV_OFFER_TYPE_LABELS, PV_OFFER_TYPE_COLORS, PV_STRUCTURE_TYPES, PV_ROOF_TYPES, PV_INSTALLATION_TYPES } from '../types/pvOfferTypes';
-import { Loader2, AlertCircle, Pencil, Sun, User, Phone, Mail, MapPin, Zap, Hash, ExternalLink, FileText, Construction, TrendingUp } from 'lucide-react';
+import { Loader2, AlertCircle, Pencil, Sun, User, Phone, Mail, MapPin, Zap, Hash, ExternalLink, FileText, TrendingUp, ArrowUp, ArrowDown, Printer } from 'lucide-react';
 
 export default function PvOfferDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { profile } = useAuth();
+  const canSeeInternalPricing = profile?.role === 'admin' || profile?.role === 'administracja';
   const [offer, setOffer] = useState<PvOffer | null>(null);
   const [items, setItems] = useState<PvOfferItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +58,10 @@ export default function PvOfferDetailPage() {
                 </span>
               )}
             </div>
-            <button onClick={() => navigate(`/sales/offers/pv/${offer.id}/edit`)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary-600 bg-primary-50 hover:bg-primary-100 transition-colors"><Pencil size={12} />Edytuj</button>
+            <div className="flex items-center gap-1.5">
+              <button onClick={() => navigate(`/sales/offers/pv/${offer.id}/print`)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-600 bg-surface-100 hover:bg-surface-200 transition-colors"><Printer size={12} />Eksport PDF</button>
+              <button onClick={() => navigate(`/sales/offers/pv/${offer.id}/edit`)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary-600 bg-primary-50 hover:bg-primary-100 transition-colors"><Pencil size={12} />Edytuj</button>
+            </div>
           </div>
           {offer.valid_until && <p className="text-xs text-muted-500 mt-2">Ważna do: {fmtDate(offer.valid_until)}</p>}
           <p className="text-xs text-muted-400 mt-1">Utworzona: {fmtDate(offer.created_at)}</p>
@@ -137,10 +143,22 @@ export default function PvOfferDetailPage() {
           <p className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-3">Ceny</p>
           <div className="space-y-2">
             <Row icon={<Zap size={14} className="text-muted-400" />} label="Cena netto" value={fmt(offer.price_net)} />
+            {offer.sales_markup_value > 0 && (
+              <div className="flex items-center gap-3">
+                <ArrowUp size={14} className="text-amber-500 shrink-0" />
+                <div className="min-w-0 flex-1"><p className="text-[11px] text-amber-600 leading-tight">Narzut handlowy</p><p className="text-sm font-medium text-amber-700">+ {fmt(offer.sales_markup_value)}</p></div>
+              </div>
+            )}
+            {offer.customer_discount_value > 0 && (
+              <div className="flex items-center gap-3">
+                <ArrowDown size={14} className="text-blue-500 shrink-0" />
+                <div className="min-w-0 flex-1"><p className="text-[11px] text-blue-600 leading-tight">Rabat klienta</p><p className="text-sm font-medium text-blue-700">- {fmt(offer.customer_discount_value)}</p></div>
+              </div>
+            )}
             <Row icon={<Hash size={14} className="text-muted-400" />} label="VAT" value={`${offer.vat_rate}%`} />
             <div className="flex items-center gap-3 p-2 rounded-lg bg-primary-50"><Zap size={14} className="text-primary-600 shrink-0" /><div className="min-w-0 flex-1"><p className="text-[11px] text-primary-500 leading-tight">Cena brutto</p><p className="text-base font-bold text-primary-700">{fmt(offer.price_gross)}</p></div></div>
-            {offer.margin_value != null && <Row icon={<TrendingUp size={14} className="text-green-500" />} label="Marża (PLN)" value={fmt(offer.margin_value)} />}
-            {offer.margin_percent != null && <Row icon={<Hash size={14} className="text-muted-400" />} label="Marża (%)" value={`${offer.margin_percent.toFixed(1)}%`} />}
+            {canSeeInternalPricing && offer.margin_value != null && <Row icon={<TrendingUp size={14} className="text-green-500" />} label="Marża (PLN)" value={fmt(offer.margin_value)} />}
+            {canSeeInternalPricing && offer.margin_percent != null && <Row icon={<Hash size={14} className="text-muted-400" />} label="Marża (%)" value={`${offer.margin_percent.toFixed(1)}%`} />}
           </div>
         </div>
 
@@ -164,10 +182,17 @@ export default function PvOfferDetailPage() {
           </div>
         )}
 
-        {/* PDF Placeholder */}
-        <div className="card p-4 opacity-60">
-          <div className="flex items-center gap-2 mb-1"><FileText size={16} className="text-muted-400" /><p className="text-xs font-medium text-muted-500 uppercase tracking-wide">Eksport PDF</p></div>
-          <div className="flex items-center gap-1.5"><Construction size={12} className="text-muted-400" /><p className="text-sm text-muted-400">W przygotowaniu</p></div>
+        {/* PDF Export */}
+        <div className="card p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText size={16} className="text-primary-500" />
+              <p className="text-xs font-medium text-gray-900 uppercase tracking-wide">Eksport PDF</p>
+            </div>
+            <button onClick={() => navigate(`/sales/offers/pv/${offer.id}/print`)} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 active:scale-[0.98] transition-all">
+              <Printer size={14} />Otwórz widok wydruku
+            </button>
+          </div>
         </div>
       </div>
     </>

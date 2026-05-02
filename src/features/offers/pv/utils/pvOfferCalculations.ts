@@ -77,6 +77,23 @@ export function uniformPanelPowerW(items: PvOfferItemDraft[]): number | null {
   return panels.every(p => p.power_w === first) ? first : null;
 }
 
+// ─── Adjustment calculations (markup / discount) ─────────
+
+export function finalNetAfterAdjustments(baseNet: number, markupValue: number, discountValue: number): number {
+  return Math.max(0, baseNet + markupValue - discountValue);
+}
+
+export function finalVatAfterAdjustments(baseVat: number, markupValue: number, discountValue: number, vatRate: number): number {
+  const markupVat = markupValue * vatRate / 100;
+  const discountVat = discountValue * vatRate / 100;
+  return Math.max(0, baseVat + markupVat - discountVat);
+}
+
+export function finalGrossAfterAdjustments(baseNet: number, baseVat: number, markupValue: number, discountValue: number, vatRate: number): number {
+  return finalNetAfterAdjustments(baseNet, markupValue, discountValue)
+    + finalVatAfterAdjustments(baseVat, markupValue, discountValue, vatRate);
+}
+
 // ─── Currency formatting ─────────────────────────────────
 
 export function fmtPln(v: number): string {

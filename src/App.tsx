@@ -28,6 +28,7 @@ import ClientDetailPage from '@/features/clients/pages/ClientDetailPage';
 import PvOffersPage from '@/features/offers/pv/pages/PvOffersPage';
 import PvOfferFormPage from '@/features/offers/pv/pages/PvOfferFormPage';
 import PvOfferDetailPage from '@/features/offers/pv/pages/PvOfferDetailPage';
+import PvOfferPrintPage from '@/features/offers/pv/pages/PvOfferPrintPage';
 import PvComponentsPage from '@/features/offers/pv/pages/PvComponentsPage';
 
 export default function App() {
@@ -70,6 +71,7 @@ export default function App() {
               <Route path="/sales/offers/pv/new" element={<PvOfferFormPage />} />
               <Route path="/sales/offers/pv/:id" element={<PvOfferDetailPage />} />
               <Route path="/sales/offers/pv/:id/edit" element={<PvOfferFormPage />} />
+              <Route path="/sales/offers/pv/:id/print" element={<PvOfferPrintPage />} />
 
               {/* Settings */}
               <Route path="/settings" element={<SettingsPage />} />

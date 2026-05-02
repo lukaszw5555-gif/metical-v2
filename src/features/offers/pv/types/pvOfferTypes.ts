@@ -28,6 +28,8 @@ export interface PvOffer {
   price_gross: number;
   margin_value: number | null;
   margin_percent: number | null;
+  sales_markup_value: number;
+  customer_discount_value: number;
   offer_note: string | null;
   internal_note: string | null;
   status: PvOfferStatus;
@@ -60,6 +62,8 @@ export interface CreatePvOfferInput {
   price_gross: number;
   margin_value?: number | null;
   margin_percent?: number | null;
+  sales_markup_value?: number;
+  customer_discount_value?: number;
   offer_note?: string | null;
   internal_note?: string | null;
   status?: PvOfferStatus;

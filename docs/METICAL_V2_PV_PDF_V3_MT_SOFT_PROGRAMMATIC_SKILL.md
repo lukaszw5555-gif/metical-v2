@@ -1,10 +1,20 @@
 # METICAL V2 — PV PDF V3 Programmatic Skill
 
+## Aktualizacja po PV PDF 2.2G
+
+- Po Sprint PV 2.2G obecny generator HTML → self-contained payload → Vercel API → Chromium → PDF został uznany za wystarczająco stabilny dla aktualnego etapu.
+- V3 programmatic zostaje jako alternatywa, nie jako natychmiastowy następny sprint.
+- Nie należy kasować obecnego generatora.
+- Nie należy przebudowywać PDF bez konkretnego problemu biznesowego.
+- Jeżeli PDF działa i wygląda dobrze, priorytetem są teraz ustawienia ofert, załączniki i panel administratora.
+
+---
+
 ## Cel
 
-Ten skill opisuje zalecany kierunek przebudowy generatora ofert PV PDF w METICAL V2 na podstawie sprawdzonego modelu z repo `mtsoft`.
+Ten skill opisuje **opcjonalny** kierunek przebudowy generatora ofert PV PDF w METICAL V2 na podstawie sprawdzonego modelu z repo `mtsoft`.
 
-Decyzja strategiczna: **nie naprawiać dalej HTML → Chromium jako głównego silnika ofert PV, jeżeli celem jest stabilne generowanie ofert na telefonie.**
+Kierunek V3: **programowy generator PDF oparty o `jsPDF` + `jspdf-autotable`** — do rozważenia, jeśli obecny silnik Chromium przestanie spełniać wymagania.
 
 Nowy kierunek: **programowy generator PDF V3 oparty o `jsPDF` + `jspdf-autotable`, z prawdziwym podglądem PDF w iframe i pobieraniem tego samego pliku.**
 
@@ -358,6 +368,11 @@ Nie robić:
 
 ## Decyzja końcowa
 
-Dla METICAL V2 generator ofert PV powinien iść w kierunku programowego PDF V3.
+Dla METICAL V2 generator ofert PV **może** iść w kierunku programowego PDF V3, jeśli obecny silnik Chromium przestanie spełniać wymagania.
 
-Obecny HTML/Chromium może zostać jako backup lub inspiracja wizualna, ale nie powinien być dalej rozwijany jako główna ścieżka, jeśli priorytetem jest stabilne generowanie ofert na telefonie.
+Obecny HTML/Chromium jest aktywnym, stabilnym generatorem. V3 programmatic zostaje jako opcja awaryjna / przyszłościowa na wypadek:
+
+1. Chromium znowu zacznie mieć problemy z paginacją,
+2. mobile zacznie generować błędy,
+3. będzie potrzebna pełna kontrola tabel i stopki,
+4. będziemy budować uniwersalny silnik ofert dla wielu branż.

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getPvOfferById } from '../services/pvOfferService';
 import { getPvOfferItems } from '../services/pvOfferItemsService';
 import { generatePvOfferPdfProgrammatic } from '../services/generatePvOfferPdf';
+import { exportElementToPdf } from '../services/exportPvOfferPdf';
 import type { PvOffer, PvOfferItem } from '../types/pvOfferTypes';
 import { PV_OFFER_TYPE_LABELS } from '../types/pvOfferTypes';
 import { Loader2, AlertCircle, Printer, ArrowLeft, Download } from 'lucide-react';
@@ -113,8 +114,14 @@ export default function PvOfferPrintPage() {
               setExporting(true);
               try {
                 const slug = (offer.offer_number || offer.id).replace(/[\s/\\]+/g, '-');
-                const pdf = await generatePvOfferPdfProgrammatic(offer, items);
-                pdf.save(`oferta-pv-${slug}.pdf`);
+                const isMobilePdfDevice = window.innerWidth < 768 || /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
+                if (isMobilePdfDevice) {
+                  const pdf = await generatePvOfferPdfProgrammatic(offer, items);
+                  pdf.save(`oferta-pv-${slug}.pdf`);
+                } else {
+                  if (!docRef.current) throw new Error('Brak dokumentu PDF');
+                  await exportElementToPdf(docRef.current, `oferta-pv-${slug}`);
+                }
               } catch (err) {
                 console.error('[PDF]', err);
                 alert('Nie udało się wygenerować PDF. Spróbuj użyć opcji Drukuj.');
@@ -131,7 +138,7 @@ export default function PvOfferPrintPage() {
       {/* Mobile info — screen only */}
       {isMobile && (
         <div className="no-print" style={{ maxWidth: 820, margin: '0 auto 12px', padding: '12px 16px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 12, fontSize: 12, color: '#92400e', textAlign: 'center', lineHeight: 1.6 }}>
-          Na telefonie eksport PDF może chwilę potrwać. Jeśli plik wygląda nieprawidłowo, obróć telefon poziomo albo pobierz ofertę z komputera.
+          Na telefonie pobierana jest uproszczona wersja PDF. Wersję premium pobierz z komputera.
         </div>
       )}
 

@@ -276,7 +276,7 @@ export default function PvOfferFormPage() {
               <div className="card p-4">
                 <p className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-3">Ogólne</p>
                 <div className="grid grid-cols-2 gap-3">
-                  <div><label className={label}>Numer oferty</label><input value={offerNumber} onChange={e => setOfferNumber(e.target.value)} className={ic} placeholder="np. PV/2026/001" /></div>
+                  <div><label className={label}>Numer oferty</label><input value={offerNumber} onChange={e => setOfferNumber(e.target.value)} className={ic} placeholder="Nadany automatycznie po zapisie" /></div>
                   <div><label className={label}>Opiekun</label><select value={assignedTo} onChange={e => setAssignedTo(e.target.value)} className={ic}><option value="">— brak —</option>{profiles.filter(p => p.is_active).map(p => <option key={p.id} value={p.id}>{p.full_name || p.email}</option>)}</select></div>
                 </div>
               </div>

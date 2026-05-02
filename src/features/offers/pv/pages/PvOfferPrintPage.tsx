@@ -58,7 +58,6 @@ export default function PvOfferPrintPage() {
   const itemsVat = items.reduce((s, i) => s + i.quantity * i.selling_price * i.vat_rate / 100, 0);
   const markup = offer.sales_markup_value || 0;
   const discount = offer.customer_discount_value || 0;
-  const hasAdjustments = markup > 0 || discount > 0;
   const finalNet = Math.max(0, itemsNet + markup - discount);
   const markupVat = markup * offer.vat_rate / 100;
   const discountVat = discount * offer.vat_rate / 100;
@@ -106,6 +105,11 @@ export default function PvOfferPrintPage() {
         </div>
       </div>
 
+      {/* Mobile info banner — screen only */}
+      <div className="no-print" style={{ maxWidth: 800, margin: '0 auto 12px', padding: '10px 16px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 12, fontSize: 12, color: '#92400e', textAlign: 'center' }}>
+        Na telefonie podgląd PDF może różnić się od pliku. Najpewniejszy eksport wykonaj z komputera.
+      </div>
+
       {/* ─── A4 Document ──────────────────────────────────── */}
       <div className="pv-print-doc" ref={docRef}>
 
@@ -147,82 +151,47 @@ export default function PvOfferPrintPage() {
           </div>
         </div>
 
-        {/* D. Items table */}
+        {/* D. Items table — scope only, no prices */}
         {items.length > 0 && (
           <>
             <h2>Zakres oferty</h2>
             <table className="pv-print-table">
               <thead>
                 <tr>
-                  <th style={{ width: '4%' }}>Lp.</th>
-                  <th style={{ width: '36%' }}>Nazwa</th>
-                  <th style={{ width: '14%' }}>Kategoria</th>
-                  <th className="text-right" style={{ width: '8%' }}>Ilość</th>
-                  <th style={{ width: '6%' }}>J.m.</th>
-                  <th className="text-right" style={{ width: '12%' }}>Netto</th>
-                  <th className="text-right" style={{ width: '8%' }}>VAT</th>
-                  <th className="text-right" style={{ width: '12%' }}>Brutto</th>
+                  <th style={{ width: '6%' }}>Lp.</th>
+                  <th style={{ width: '46%' }}>Nazwa / zakres</th>
+                  <th style={{ width: '22%' }}>Kategoria</th>
+                  <th className="text-right" style={{ width: '14%' }}>Ilość</th>
+                  <th style={{ width: '12%' }}>J.m.</th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((item, idx) => {
-                  const lineNet = item.quantity * item.selling_price;
-                  const lineVat = lineNet * item.vat_rate / 100;
-                  return (
-                    <tr key={item.id}>
-                      <td>{idx + 1}</td>
-                      <td>
-                        <span className="pv-print-item-name">{item.trade_name}</span>
-                        {item.manufacturer && <><br /><span className="pv-print-item-cat">{item.manufacturer}</span></>}
-                      </td>
-                      <td><span className="pv-print-item-cat">{item.category}</span></td>
-                      <td className="text-right">{item.quantity}</td>
-                      <td>{item.unit}</td>
-                      <td className="text-right">{fmt(lineNet)}</td>
-                      <td className="text-right">{item.vat_rate}%</td>
-                      <td className="text-right">{fmt(lineNet + lineVat)}</td>
-                    </tr>
-                  );
-                })}
+                {items.map((item, idx) => (
+                  <tr key={item.id}>
+                    <td>{idx + 1}</td>
+                    <td>
+                      <span className="pv-print-item-name">{item.trade_name}</span>
+                      {item.manufacturer && <><br /><span className="pv-print-item-cat">{item.manufacturer}</span></>}
+                    </td>
+                    <td><span className="pv-print-item-cat">{item.category}</span></td>
+                    <td className="text-right">{item.quantity}</td>
+                    <td>{item.unit}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </>
         )}
 
-        {/* E. Price summary */}
+        {/* E. Price — final brutto only */}
         <div className="pv-print-summary">
           <div className="pv-print-summary-table">
-            {items.length > 0 && (
-              <div className="pv-print-summary-row">
-                <span className="pv-print-summary-label">Suma pozycji netto</span>
-                <span className="pv-print-summary-value">{fmt(itemsNet)}</span>
-              </div>
-            )}
-            {markup > 0 && (
-              <div className="pv-print-summary-row adjustment">
-                <span>Narzut handlowy</span>
-                <span className="pv-print-summary-value">+ {fmt(markup)}</span>
-              </div>
-            )}
-            {discount > 0 && (
-              <div className="pv-print-summary-row adjustment">
-                <span>Rabat klienta</span>
-                <span className="pv-print-summary-value">- {fmt(discount)}</span>
-              </div>
-            )}
-            {hasAdjustments && (
-              <div className="pv-print-summary-row">
-                <span className="pv-print-summary-label">Netto po korekcie</span>
-                <span className="pv-print-summary-value">{fmt(finalNet)}</span>
-              </div>
-            )}
-            <div className="pv-print-summary-row">
-              <span className="pv-print-summary-label">VAT</span>
-              <span className="pv-print-summary-value">{fmt(finalVat)}</span>
-            </div>
-            <div className="pv-print-summary-row total">
-              <span>Brutto</span>
+            <div className="pv-print-summary-row total" style={{ fontSize: '16px' }}>
+              <span>Cena oferty brutto</span>
               <span>{fmt(finalGross)}</span>
+            </div>
+            <div className="pv-print-summary-row" style={{ borderTop: 'none', paddingTop: 0 }}>
+              <span className="pv-print-summary-label" style={{ fontSize: '10px', color: '#9898b0' }}>Cena zawiera VAT {offer.vat_rate}%</span>
             </div>
           </div>
         </div>

@@ -17,7 +17,7 @@ import {
 } from '@/lib/constants';
 import {
   Loader2, AlertCircle, Phone, Mail, MapPin, User, Star,
-  CalendarClock, FileText, ChevronDown, ChevronUp, Pencil, X, Check, Tag, History, UserPlus, ExternalLink,
+  CalendarClock, FileText, ChevronDown, ChevronUp, Pencil, X, Check, Tag, History, UserPlus, ExternalLink, Sun,
 } from 'lucide-react';
 
 export default function LeadDetailPage() {
@@ -500,6 +500,18 @@ export default function LeadDetailPage() {
             </button>
           </div>
         )}
+
+        {/* ─── Create PV Offer ─────────────────────────── */}
+        <button onClick={() => navigate(`/sales/offers/pv/new?leadId=${lead.id}`)}
+          className="card w-full p-4 text-left hover:bg-primary-50 transition-colors flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center">
+            <Sun size={20} className="text-primary-600" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-gray-900">Utwórz ofertę PV</p>
+            <p className="text-xs text-muted-500">Otwórz formularz oferty z danymi tego leada</p>
+          </div>
+        </button>
 
         {/* ─── Follow-up quick edit ──────────────────────── */}
         <div className="card p-4">

@@ -148,10 +148,30 @@ export default function PvOfferFormPage() {
         if (o.lead_id) { setSource('lead'); setSelectedLeadId(o.lead_id); }
         else if (o.client_id) { setSource('client'); setSelectedClientId(o.client_id); }
         setItems(existingItems.map(existingItemToDraft));
+      } else {
+        // Prefill from query params (new offer only)
+        const qpLeadId = searchParams.get('leadId');
+        const qpClientId = searchParams.get('clientId');
+        if (qpLeadId) {
+          const lead = ld.find(l => l.id === qpLeadId);
+          if (lead) {
+            setSource('lead'); setSelectedLeadId(lead.id);
+            setCustomerName(lead.full_name); setCustomerPhone(lead.phone);
+            setCustomerEmail(lead.email || ''); setCustomerCity(lead.city || '');
+          }
+        } else if (qpClientId) {
+          const client = cl.find(c => c.id === qpClientId);
+          if (client) {
+            setSource('client'); setSelectedClientId(client.id);
+            setCustomerName(client.full_name); setCustomerPhone(client.phone || '');
+            setCustomerEmail(client.email || ''); setCustomerCity(client.city || '');
+            setInvestmentAddress(client.address || '');
+          }
+        }
       }
     } catch (e) { setError(e instanceof Error ? e.message : 'Błąd'); }
     finally { setLoadingSources(false); }
-  }, [id, isEdit]);
+  }, [id, isEdit, searchParams]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -348,12 +368,10 @@ export default function PvOfferFormPage() {
                 </div>
               </div>
 
-              {/* ─── ITEMS SECTION ──────────────────── */}
-              <PvOfferItemsSection items={items} onChange={setItems} defaultVatRate={parseFloat(vatRate) || 23} canSeeInternalPricing={canSeeInternalPricing} />
-
-              {/* Warunki cenowe */}
+              {/* Warunki cenowe — before items for visibility */}
               <div className="card p-4">
-                <p className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-3">Warunki cenowe</p>
+                <p className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-1">Warunki cenowe</p>
+                <p className="text-[10px] text-muted-400 mb-3">Stawka VAT wpływa na podsumowanie i finalną kwotę oferty.</p>
                 <div className="space-y-3">
                   {/* VAT segmented */}
                   <div>
@@ -361,9 +379,9 @@ export default function PvOfferFormPage() {
                     <div className="flex gap-2 mt-1">
                       {['8', '23'].map(v => (
                         <button key={v} type="button" onClick={() => { setVatRate(v); handleVatChange(v); }}
-                          className={`flex-1 py-2 rounded-xl text-sm font-bold transition-colors ${
+                          className={`flex-1 py-3 rounded-xl text-base font-bold transition-colors ${
                             vatRate === v
-                              ? 'bg-primary-600 text-white shadow-sm'
+                              ? 'bg-primary-600 text-white shadow-md ring-2 ring-primary-300'
                               : 'bg-surface-100 text-muted-600 hover:bg-surface-200'
                           }`}>
                           {v}%
@@ -384,6 +402,9 @@ export default function PvOfferFormPage() {
                   </div>
                 </div>
               </div>
+
+              {/* ─── ITEMS SECTION ──────────────────── */}
+              <PvOfferItemsSection items={items} onChange={setItems} defaultVatRate={parseFloat(vatRate) || 23} canSeeInternalPricing={canSeeInternalPricing} />
 
               {/* Summary on mobile (below items) */}
               <div className="md:hidden">

@@ -11,7 +11,7 @@ import ClientComments from '@/features/clients/components/ClientComments';
 import type { UserProfile } from '@/types/database';
 import {
   Loader2, AlertCircle, Phone, Mail, MapPin, User, FileText,
-  Pencil, X, Check, Link2, Construction, Building2, ExternalLink, Plus,
+  Pencil, X, Check, Link2, Construction, Building2, ExternalLink, Plus, Sun,
 } from 'lucide-react';
 import type { Investment } from '@/types/database';
 import { getInvestmentsByClientId, createInvestment } from '@/features/investments/services/investmentsService';
@@ -239,6 +239,18 @@ export default function ClientDetailPage() {
             <p className="text-sm font-medium text-gray-900">Klient dodany ręcznie</p>
           )}
         </div>
+
+        {/* ─── Create PV Offer ─────────────────────────── */}
+        <button onClick={() => navigate(`/sales/offers/pv/new?clientId=${client.id}`)}
+          className="card w-full p-4 text-left hover:bg-primary-50 transition-colors flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center">
+            <Sun size={20} className="text-primary-600" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-gray-900">Utwórz ofertę PV</p>
+            <p className="text-xs text-muted-500">Otwórz formularz oferty z danymi tego klienta</p>
+          </div>
+        </button>
 
         {/* ─── Comments ─────────────────────────────── */}
         <ClientComments comments={comments} profiles={profiles}

@@ -7,13 +7,15 @@ import { X, Search, Package, Loader2 } from 'lucide-react';
 interface Props {
   onSelect: (component: PvComponent) => void;
   onClose: () => void;
+  initialCategory?: string;
+  title?: string;
 }
 
-export default function PvComponentPickerModal({ onSelect, onClose }: Props) {
+export default function PvComponentPickerModal({ onSelect, onClose, initialCategory, title }: Props) {
   const [components, setComponents] = useState<PvComponent[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('all');
+  const [category, setCategory] = useState(initialCategory || 'all');
 
   const load = useCallback(async () => {
     try {
@@ -50,7 +52,7 @@ export default function PvComponentPickerModal({ onSelect, onClose }: Props) {
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-surface-100 shrink-0">
-          <h3 className="text-base font-bold text-gray-900">Wybierz komponent z katalogu</h3>
+          <h3 className="text-base font-bold text-gray-900">{title || 'Wybierz komponent z katalogu'}</h3>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-surface-100 text-muted-400"><X size={20} /></button>
         </div>
 

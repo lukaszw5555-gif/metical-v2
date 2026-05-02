@@ -3,7 +3,7 @@ import type { PvOfferItemDraft } from '../types/pvOfferTypes';
 import type { PvComponent } from '../types/pvComponentTypes';
 import PvComponentPickerModal from './PvComponentPickerModal';
 import { lineNetValue, lineGrossValue, lineMarginValue, fmtPln } from '../utils/pvOfferCalculations';
-import { Plus, Trash2, Package, ShoppingCart } from 'lucide-react';
+import { Plus, Minus, Trash2, Package, ShoppingCart } from 'lucide-react';
 
 interface Props {
   items: PvOfferItemDraft[];
@@ -136,8 +136,15 @@ export default function PvOfferItemsSection({ items, onChange, defaultVatRate }:
                     )}
                   </td>
                   <td className="px-2 py-1.5">
-                    <input type="number" min="0.01" step="1" value={item.quantity}
-                      onChange={e => update(idx, { quantity: parseFloat(e.target.value) || 1 })} className={ic} />
+                    <div className="flex items-center gap-0.5">
+                      <button type="button" onClick={() => update(idx, { quantity: Math.max(1, item.quantity - 1) })}
+                        className="w-6 h-6 flex items-center justify-center rounded bg-surface-100 hover:bg-surface-200 text-muted-500 active:scale-90 transition-all"><Minus size={10} /></button>
+                      <input type="number" min="1" step="1" value={item.quantity}
+                        onChange={e => update(idx, { quantity: Math.max(1, parseFloat(e.target.value) || 1) })}
+                        className="w-12 text-center px-1 py-1 border border-surface-200 rounded-lg text-xs bg-surface-50 focus:outline-none focus:ring-1 focus:ring-primary-500/30 font-semibold" />
+                      <button type="button" onClick={() => update(idx, { quantity: item.quantity + 1 })}
+                        className="w-6 h-6 flex items-center justify-center rounded bg-surface-100 hover:bg-surface-200 text-muted-500 active:scale-90 transition-all"><Plus size={10} /></button>
+                    </div>
                   </td>
                   <td className="px-2 py-1.5">
                     <input type="number" step="0.01" value={item.purchase_price}
@@ -186,8 +193,15 @@ export default function PvOfferItemsSection({ items, onChange, defaultVatRate }:
               </div>
               <div className="grid grid-cols-4 gap-2">
                 <div><span className="text-[10px] text-muted-400">Ilość</span>
-                  <input type="number" min="0.01" step="1" value={item.quantity}
-                    onChange={e => update(idx, { quantity: parseFloat(e.target.value) || 1 })} className={ic} /></div>
+                  <div className="flex items-center gap-0.5 mt-0.5">
+                    <button type="button" onClick={() => update(idx, { quantity: Math.max(1, item.quantity - 1) })}
+                      className="w-7 h-7 flex items-center justify-center rounded bg-surface-100 hover:bg-surface-200 text-muted-500 active:scale-90 transition-all"><Minus size={12} /></button>
+                    <input type="number" min="1" step="1" value={item.quantity}
+                      onChange={e => update(idx, { quantity: Math.max(1, parseFloat(e.target.value) || 1) })}
+                      className="w-10 text-center px-1 py-1 border border-surface-200 rounded-lg text-xs bg-surface-50 focus:outline-none font-semibold" />
+                    <button type="button" onClick={() => update(idx, { quantity: item.quantity + 1 })}
+                      className="w-7 h-7 flex items-center justify-center rounded bg-surface-100 hover:bg-surface-200 text-muted-500 active:scale-90 transition-all"><Plus size={12} /></button>
+                  </div></div>
                 <div><span className="text-[10px] text-muted-400">Zakup</span>
                   <input type="number" step="0.01" value={item.purchase_price}
                     onChange={e => update(idx, { purchase_price: parseFloat(e.target.value) || 0 })} className={ic} /></div>

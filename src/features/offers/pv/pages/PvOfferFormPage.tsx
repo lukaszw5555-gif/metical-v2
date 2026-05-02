@@ -7,8 +7,10 @@ import { getClients } from '@/features/clients/services/clientService';
 import { getActiveProfiles } from '@/lib/services/profilesService';
 import { createPvOffer, getPvOfferById, updatePvOffer } from '../services/pvOfferService';
 import { getPvOfferItems, replacePvOfferItems } from '../services/pvOfferItemsService';
-import PvOfferItemsSection, { existingItemToDraft } from '../components/PvOfferItemsSection';
+import PvOfferItemsSection, { existingItemToDraft, createDraftFromComponent } from '../components/PvOfferItemsSection';
 import PvOfferSummaryPanel from '../components/PvOfferSummaryPanel';
+import PvOfferFlowChecklist from '../components/PvOfferFlowChecklist';
+import PvComponentPickerModal from '../components/PvComponentPickerModal';
 import {
   totalNet, totalGross, totalMargin, totalMarginPercent,
   installationPowerKWp, panelCountFromItems, uniformPanelPowerW,
@@ -21,8 +23,8 @@ import {
   PV_OFFER_TYPES, PV_OFFER_TYPE_LABELS, PV_OFFER_TYPE_DESCRIPTIONS, PV_OFFER_TYPE_COLORS,
   PV_STRUCTURE_TYPES, PV_ROOF_TYPES, PV_INSTALLATION_TYPES,
 } from '../types/pvOfferTypes';
-import { getOfferFlow } from '../config/pvOfferFlowConfig';
-import { Loader2, AlertCircle, Check, CheckCircle2, Circle, Info } from 'lucide-react';
+import { type PvOfferFlowStep } from '../config/pvOfferFlowConfig';
+import { Loader2, AlertCircle, Check } from 'lucide-react';
 
 type Source = 'manual' | 'lead' | 'client';
 
@@ -74,6 +76,9 @@ export default function PvOfferFormPage() {
 
   // Items state
   const [items, setItems] = useState<PvOfferItemDraft[]>([]);
+
+  // Step-based picker
+  const [stepPickerStep, setStepPickerStep] = useState<PvOfferFlowStep | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -268,64 +273,25 @@ export default function PvOfferFormPage() {
                 </select>
               </div>
 
-              {/* Flow checklist (informational) */}
-              {offerType !== 'individual' && (() => {
-                const flow = getOfferFlow(offerType);
-                const hasCat = (cat: string) => items.some(i => i.category === cat);
-                return (
-                  <div className="card p-4">
-                    <p className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-3">Ścieżka konfiguracji</p>
-                    {flow.requiredSteps.length > 0 && (
-                      <div className="mb-3">
-                        <p className="text-[10px] font-semibold text-muted-500 uppercase mb-1.5">Wymagane</p>
-                        <div className="space-y-1">
-                          {flow.requiredSteps.map(step => {
-                            const done = hasCat(step.category);
-                            return (
-                              <div key={step.key} className="flex items-center gap-2">
-                                {done
-                                  ? <CheckCircle2 size={14} className="text-green-500 shrink-0" />
-                                  : <Circle size={14} className="text-muted-300 shrink-0" />}
-                                <span className={`text-xs ${done ? 'text-gray-700' : 'text-muted-400'}`}>{step.label}</span>
-                                <span className="text-[9px] text-muted-300 ml-auto">{step.category}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                    {flow.optionalSteps.length > 0 && (
-                      <div className="mb-3">
-                        <p className="text-[10px] font-semibold text-muted-500 uppercase mb-1.5">Opcjonalne</p>
-                        <div className="space-y-1">
-                          {flow.optionalSteps.map(step => {
-                            const done = hasCat(step.category);
-                            return (
-                              <div key={step.key} className="flex items-center gap-2">
-                                {done
-                                  ? <CheckCircle2 size={14} className="text-green-500 shrink-0" />
-                                  : <Circle size={14} className="text-muted-300 shrink-0" />}
-                                <span className={`text-xs ${done ? 'text-gray-700' : 'text-muted-400'}`}>{step.label}</span>
-                                <span className="text-[9px] text-muted-300 ml-auto">{step.category}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                    {flow.autoItemsHint.length > 0 && (
-                      <div className="flex items-start gap-1.5 p-2 bg-blue-50 rounded-lg">
-                        <Info size={12} className="text-blue-500 shrink-0 mt-0.5" />
-                        <div className="space-y-0.5">
-                          {flow.autoItemsHint.map((h, i) => (
-                            <p key={i} className="text-[10px] text-blue-700">{h}</p>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+              {/* Flow checklist with step-based picker */}
+              <PvOfferFlowChecklist
+                offerType={offerType}
+                items={items}
+                onAddFromStep={(step) => setStepPickerStep(step)}
+              />
+
+              {/* Step-based picker modal */}
+              {stepPickerStep && (
+                <PvComponentPickerModal
+                  initialCategory={stepPickerStep.category}
+                  title={`Wybierz: ${stepPickerStep.label}`}
+                  onSelect={(comp) => {
+                    setItems(prev => [...prev, createDraftFromComponent(comp)]);
+                    setStepPickerStep(null);
+                  }}
+                  onClose={() => setStepPickerStep(null)}
+                />
+              )}
 
               {/* Source selector */}
               <div className="card p-4">

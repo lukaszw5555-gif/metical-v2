@@ -137,15 +137,15 @@ ${cssText}
         width: 100%;
         height: 18mm;
         background: #1a1a2e;
-        color: rgba(255,255,255,0.55);
+        color: rgba(255,255,255,0.68);
         font-family: Inter, Arial, sans-serif;
-        font-size: 8px;
+        font-size: 8.5px;
         line-height: 1.35;
         text-align: center;
         padding: 4mm 10mm 0;
         box-sizing: border-box;
       ">
-        <div style="color:#c9a84c;font-weight:700;margin-bottom:1mm;">METICAL Sp. z o.o.</div>
+        <div style="color:#c9a84c;font-weight:700;margin-bottom:1mm;letter-spacing:.3px;">METICAL Sp. z o.o.</div>
         <div>Oferta ma charakter informacyjny i wymaga potwierdzenia dostępności komponentów oraz warunków montażu po wizji lokalnej lub analizie technicznej.</div>
       </div>`;
 

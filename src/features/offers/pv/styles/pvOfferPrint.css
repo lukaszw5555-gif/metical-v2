@@ -69,11 +69,18 @@
   display: flex;
   align-items: flex-end;
   padding: 0;
+  overflow: hidden;
+  isolation: isolate;
 }
 .pv-hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(26,26,46,0.35) 0%, rgba(26,26,46,0.88) 100%);
+  z-index: 0;
+  background:
+    linear-gradient(90deg, rgba(10,10,26,0.78) 0%, rgba(10,10,26,0.52) 42%, rgba(10,10,26,0.30) 100%),
+    linear-gradient(180deg, rgba(10,10,26,0.25) 0%, rgba(10,10,26,0.82) 100%);
+  backdrop-filter: blur(1.5px);
+  -webkit-backdrop-filter: blur(1.5px);
 }
 .pv-hero-content {
   position: relative;
@@ -81,6 +88,7 @@
   width: 100%;
   padding: 36px 40px 28px;
   color: #fff;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.35);
 }
 .pv-hero-logo {
   display: block;
@@ -412,6 +420,12 @@
 .pv-scope-table {
   break-inside: auto;
   page-break-inside: auto;
+}
+.pv-scope-table thead {
+  display: table-header-group;
+}
+.pv-scope-table tfoot {
+  display: table-footer-group;
 }
 .pv-scope-table tr {
   break-inside: avoid;

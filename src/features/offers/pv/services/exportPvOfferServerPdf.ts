@@ -1,51 +1,105 @@
 /**
- * Server-side premium PDF export service.
+ * Server-side premium PDF export service (self-contained).
  *
- * Extracts the full HTML + CSS from the current page and sends it
- * to the Vercel Serverless Function for headless Chromium rendering.
- * The result is a pixel-perfect A4 PDF identical to the desktop view.
+ * Builds a fully self-contained HTML payload:
+ * - CSS rules extracted as text (no external stylesheet links)
+ * - Logo and hero images converted to data URLs (no network fetching on server)
+ * - Clone of .pv-print-doc with UI elements stripped
+ *
+ * The server only needs to render the HTML — no external dependencies.
  */
+
+// ─── Helper: convert asset to data URL ────────────────
+async function assetToDataUrl(path: string): Promise<string | null> {
+  try {
+    const res = await fetch(path, { cache: 'force-cache' });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+// ─── Main export function ─────────────────────────────
 export async function exportPvOfferServerPdf(
   element: HTMLElement,
   filename: string
 ): Promise<void> {
-  // ─── 1. Capture HTML ────────────────────────────────
-  const html = element.outerHTML;
+  // ─── 1. Clone and strip UI elements ─────────────────
+  const clone = element.cloneNode(true) as HTMLElement;
+  clone.querySelectorAll('.no-print, .pv-print-controls, .mobile-info-banner')
+    .forEach((el) => el.remove());
 
-  // ─── 2. Collect stylesheet URLs ─────────────────────
-  const stylesheets = Array.from(
-    document.querySelectorAll('link[rel="stylesheet"]')
-  ).map((link) => (link as HTMLLinkElement).href);
+  // ─── 2. Load assets as data URLs ────────────────────
+  const [logoDataUrl, heroDataUrl] = await Promise.all([
+    assetToDataUrl('/metical-logo-light.png'),
+    assetToDataUrl('/pv-offer-hero.png'),
+  ]);
 
-  // ─── 3. Collect inline <style> tags ─────────────────
-  const inlineStyles = Array.from(document.querySelectorAll('style'))
-    .map((style) => style.textContent || '');
+  console.log('[PDF CLIENT] logo loaded:', !!logoDataUrl);
+  console.log('[PDF CLIENT] hero loaded:', !!heroDataUrl);
 
-  console.log('[PDF CLIENT] sending request');
+  // ─── 3. Replace asset references in clone ───────────
+  if (logoDataUrl) {
+    const logoImg = clone.querySelector('img[src*="metical-logo-light"]') as HTMLImageElement | null;
+    if (logoImg) logoImg.src = logoDataUrl;
+  }
+
+  if (heroDataUrl) {
+    const heroEl = clone.querySelector('.pv-hero') as HTMLElement | null;
+    if (heroEl) {
+      heroEl.style.backgroundImage = `url("${heroDataUrl}")`;
+    }
+  }
+
+  // ─── 4. Collect all CSS as text ─────────────────────
+  let cssText = '';
+
+  for (const sheet of Array.from(document.styleSheets)) {
+    try {
+      const rules = Array.from(sheet.cssRules || []);
+      cssText += rules.map((rule) => rule.cssText).join('\n') + '\n';
+    } catch {
+      // Cross-origin stylesheets — skip (their rules are inaccessible)
+    }
+  }
+
+  cssText += '\n' + Array.from(document.querySelectorAll('style'))
+    .map((style) => style.textContent || '')
+    .join('\n');
+
+  // ─── 5. Build payload ──────────────────────────────
+  const html = clone.outerHTML;
+
   console.log('[PDF CLIENT] html length:', html.length);
-  console.log('[PDF CLIENT] stylesheets count:', stylesheets.length);
-  console.log('[PDF CLIENT] inlineStyles count:', inlineStyles.length);
+  console.log('[PDF CLIENT] cssText length:', cssText.length);
+  console.log('[PDF CLIENT] request start');
 
-  // ─── 4. POST to Vercel API ──────────────────────────
+  // ─── 6. POST to Vercel API ──────────────────────────
   const response = await fetch('/api/generate-pv-offer-pdf', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       html,
-      stylesheets,
-      inlineStyles,
+      cssText,
       origin: window.location.origin,
       filename,
     }),
   });
 
   console.log('[PDF CLIENT] response status:', response.status);
-  console.log('[PDF CLIENT] response content-type:', response.headers.get('content-type'));
+  console.log('[PDF CLIENT] content-type:', response.headers.get('content-type'));
 
-  // ─── 5. Validate response ──────────────────────────
+  // ─── 7. Validate response ──────────────────────────
   if (!response.ok) {
     const errorText = await response.text().catch(() => 'Brak odpowiedzi');
-    console.error('[PDF CLIENT] server error response:', errorText);
+    console.error('[PDF CLIENT] server error:', errorText);
     throw new Error(`Server PDF error (${response.status}): ${errorText}`);
   }
 
@@ -56,7 +110,7 @@ export async function exportPvOfferServerPdf(
     throw new Error(`Unexpected response type: ${contentType}`);
   }
 
-  // ─── 6. Download the PDF blob ───────────────────────
+  // ─── 8. Download ───────────────────────────────────
   const blob = await response.blob();
   console.log('[PDF CLIENT] blob size:', blob.size);
 
@@ -66,12 +120,11 @@ export async function exportPvOfferServerPdf(
 
   const url = window.URL.createObjectURL(blob);
 
-  // ─── 7. Trigger download / Safari handling ──────────
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   if (isIOS) {
-    // On iOS Safari, <a download> doesn't work with blob URLs.
-    // Open the PDF directly — user can use the native share sheet to save.
+    // iOS Safari ignores <a download> on blob URLs.
+    // Navigate to the blob URL directly — user gets native PDF viewer + share sheet.
     window.location.href = url;
   } else {
     const link = document.createElement('a');
@@ -80,8 +133,6 @@ export async function exportPvOfferServerPdf(
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(() => window.URL.revokeObjectURL(url), 5000);
   }
-
-  // ─── 8. Cleanup ─────────────────────────────────────
-  setTimeout(() => window.URL.revokeObjectURL(url), 5000);
 }

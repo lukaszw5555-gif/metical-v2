@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPvOfferById } from '../services/pvOfferService';
 import { getPvOfferItems } from '../services/pvOfferItemsService';
-import { generatePvOfferPdfProgrammatic } from '../services/generatePvOfferPdf';
 import { exportElementToPdf } from '../services/exportPvOfferPdf';
 import { exportPvOfferServerPdf } from '../services/exportPvOfferServerPdf';
 import type { PvOffer, PvOfferItem } from '../types/pvOfferTypes';
@@ -118,21 +117,18 @@ export default function PvOfferPrintPage() {
                 const filename = `oferta-pv-${slug}`;
 
                 try {
-                  // 1. Primary path: Server-side premium PDF (Universal)
+                  // Primary path: Server-side premium PDF (desktop + mobile)
                   await exportPvOfferServerPdf(docRef.current, filename);
                 } catch (serverErr) {
                   console.error('[PDF] Server-side export failed:', serverErr);
                   
-                  if (window.innerWidth < 768) {
-                    // Mobile fallback: Show alert, don't silently use jsPDF
-                    if (confirm('PDF premium nie został wygenerowany. Szczegóły w konsoli.\n\nCzy chcesz pobrać uproszczoną wersję awaryjną?')) {
-                      const pdf = await generatePvOfferPdfProgrammatic(offer, items);
-                      pdf.save(`${filename}.pdf`);
-                    }
-                  } else {
+                  if (window.innerWidth >= 768) {
                     // Desktop fallback: html2canvas
                     console.warn('[PDF] Using html2canvas desktop fallback');
                     await exportElementToPdf(docRef.current, filename);
+                  } else {
+                    // Mobile: show error, do NOT fall back to jsPDF
+                    alert('Nie udało się wygenerować PDF premium. Spróbuj ponownie.\n\nSzczegóły są w konsoli / logach Vercel.');
                   }
                 }
               } catch (err) {

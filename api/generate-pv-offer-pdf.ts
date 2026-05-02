@@ -3,36 +3,29 @@ import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 
 // TODO: add API key / auth guard before public SaaS release.
-// The endpoint is currently open because it only processes customer-facing HTML
-// from .pv-print-doc and does not have access to internal DB or secrets.
 
 /**
- * Server-side premium PDF generation using headless Chromium.
+ * Server-side premium PDF generation (self-contained).
  *
- * Accepts the rendered HTML of .pv-print-doc plus collected CSS,
- * renders it identically to the desktop premium view, and returns
- * a pixel-perfect A4 PDF.
+ * Receives fully self-contained HTML:
+ * - All CSS as inline text (cssText)
+ * - Images already embedded as data URLs
+ * - No external stylesheet links to fetch
+ * - No external images to download
+ *
+ * This eliminates network-dependent timeouts on Vercel.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // ─── Method guard ────────────────────────────────────
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // ─── Parse body ──────────────────────────────────────
-  const {
-    html,
-    stylesheets = [],
-    inlineStyles = [],
-    origin,
-    filename,
-  } = req.body || {};
+  const { html, cssText = '', origin = '', filename } = req.body || {};
 
   console.log('[PDF API] method:', req.method);
   console.log('[PDF API] html length:', html ? html.length : 0);
-  console.log('[PDF API] stylesheets count:', stylesheets.length);
-  console.log('[PDF API] inlineStyles count:', inlineStyles.length);
+  console.log('[PDF API] cssText length:', cssText.length);
   console.log('[PDF API] origin:', origin);
 
   if (!html) {
@@ -42,11 +35,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let browser = null;
 
   try {
-    // ─── Launch headless Chromium ───────────────────────
     console.log('[PDF API] launching chromium...');
 
     const executablePath = await chromium.executablePath();
-    console.log('[PDF API] chromium executable path resolved:', executablePath);
+    console.log('[PDF API] executable path:', executablePath);
 
     browser = await puppeteer.launch({
       args: [
@@ -66,30 +58,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const page = await browser.newPage();
 
-    // ─── Build full HTML document ──────────────────────
-    const baseOrigin = origin || '';
-    const sheetLinks = stylesheets
-      .map((href: string) => `<link rel="stylesheet" href="${href}">`)
-      .join('\n');
-    const inlineStyleBlocks = inlineStyles
-      .map((css: string) => `<style>${css}</style>`)
-      .join('\n');
-
+    // ─── Build self-contained HTML document ────────────
     const fullHtml = `<!doctype html>
 <html lang="pl">
 <head>
   <meta charset="utf-8" />
-  <base href="${baseOrigin}/" />
-
-  ${sheetLinks}
-
-  ${inlineStyleBlocks}
+  <base href="${origin}/" />
 
   <style>
-    @page {
-      size: A4;
-      margin: 0;
-    }
+${cssText}
+  </style>
+
+  <style>
+    @page { size: A4; margin: 0; }
 
     html, body {
       margin: 0;
@@ -100,7 +81,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     .no-print,
-    .pv-print-controls {
+    .pv-print-controls,
+    .mobile-info-banner {
       display: none !important;
     }
 
@@ -119,37 +101,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 </body>
 </html>`;
 
-    // ─── Render ────────────────────────────────────────
+    // ─── Render (no external assets to wait for) ──────
     console.log('[PDF API] setContent start...');
 
     await page.setContent(fullHtml, {
-      waitUntil: 'domcontentloaded',
-      timeout: 20000,
+      waitUntil: 'load',
+      timeout: 15000,
     });
 
-    // Wait for images to load (with individual timeouts)
-    await page.evaluate(`
-      (async () => {
-        const imgs = Array.from(document.images);
-        await Promise.all(
-          imgs.map((img) => {
-            if (img.complete) return Promise.resolve();
-            return new Promise((resolve) => {
-              const timer = setTimeout(resolve, 8000);
-              img.onload = () => { clearTimeout(timer); resolve(); };
-              img.onerror = () => { clearTimeout(timer); resolve(); };
-            });
-          })
-        );
-      })()
-    `);
+    console.log('[PDF API] setContent done');
 
-    console.log('[PDF API] setContent done, images loaded');
+    await page.emulateMediaType('screen');
 
-    await page.emulateMediaType('print');
-
-    // ─── Generate PDF ──────────────────────────────────
-    console.log('[PDF API] pdf generation start...');
+    // ─── Generate PDF ─────────────────────────────────
+    console.log('[PDF API] pdf start...');
 
     const pdfBuffer = await page.pdf({
       format: 'A4',
@@ -165,7 +130,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log('[PDF API] pdf done, size:', pdfBuffer.length, 'bytes');
 
-    // ─── Response ──────────────────────────────────────
     const safeName = (filename || 'oferta').replace(/[^a-zA-Z0-9_-]/g, '_');
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${safeName}.pdf"`);

@@ -26,11 +26,11 @@ async function assetToDataUrl(path: string): Promise<string | null> {
   }
 }
 
-// ─── Main export function ─────────────────────────────
-export async function exportPvOfferServerPdf(
+// ─── Generate PDF Blob (no download) ──────────────────
+export async function generatePvOfferServerPdfBlob(
   element: HTMLElement,
   filename: string
-): Promise<void> {
+): Promise<Blob> {
   // ─── 1. Clone and strip UI elements ─────────────────
   const clone = element.cloneNode(true) as HTMLElement;
   clone.querySelectorAll('.no-print, .pv-print-controls, .mobile-info-banner')
@@ -110,7 +110,7 @@ export async function exportPvOfferServerPdf(
     throw new Error(`Unexpected response type: ${contentType}`);
   }
 
-  // ─── 8. Download ───────────────────────────────────
+  // ─── 8. Return blob ────────────────────────────────
   const blob = await response.blob();
   console.log('[PDF CLIENT] blob size:', blob.size);
 
@@ -118,6 +118,11 @@ export async function exportPvOfferServerPdf(
     throw new Error('Received empty PDF from server');
   }
 
+  return blob;
+}
+
+// ─── Download / share a PDF blob ──────────────────────
+export function downloadPdfBlob(blob: Blob, filename: string): void {
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   if (isIOS) {
@@ -125,13 +130,13 @@ export async function exportPvOfferServerPdf(
     const pdfFile = new File([blob], `${filename}.pdf`, { type: 'application/pdf' });
 
     if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-      try {
-        await navigator.share({ files: [pdfFile], title: filename });
-        return;
-      } catch (shareErr) {
+      navigator.share({ files: [pdfFile], title: filename }).catch((shareErr) => {
         // User cancelled or share failed — fall through to blob URL
         console.warn('[PDF CLIENT] Web Share cancelled/failed:', shareErr);
-      }
+        const url = window.URL.createObjectURL(blob);
+        window.location.href = url;
+      });
+      return;
     }
 
     // Fallback: open blob URL directly (Safari may show "Unknown.pdf")
@@ -147,4 +152,13 @@ export async function exportPvOfferServerPdf(
     document.body.removeChild(link);
     setTimeout(() => window.URL.revokeObjectURL(url), 5000);
   }
+}
+
+// ─── Legacy combined function ─────────────────────────
+export async function exportPvOfferServerPdf(
+  element: HTMLElement,
+  filename: string
+): Promise<void> {
+  const blob = await generatePvOfferServerPdfBlob(element, filename);
+  downloadPdfBlob(blob, filename);
 }

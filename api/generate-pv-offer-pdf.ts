@@ -70,7 +70,7 @@ ${cssText}
   </style>
 
   <style>
-    @page { size: A4; margin: 0; }
+    @page { size: A4; }
 
     html, body {
       margin: 0;
@@ -86,12 +86,18 @@ ${cssText}
       display: none !important;
     }
 
+    /* Hide the in-document footer instance — per-page footer is handled by Puppeteer footerTemplate */
+    .pv-print-footer {
+      display: none !important;
+    }
+
     .pv-print-doc {
-      width: 820px !important;
-      max-width: 820px !important;
-      min-width: 820px !important;
-      margin: 0 auto !important;
+      width: 100% !important;
+      max-width: none !important;
+      min-width: 0 !important;
+      margin: 0 !important;
       box-shadow: none !important;
+      border-radius: 0 !important;
       transform: none !important;
     }
   </style>
@@ -116,15 +122,35 @@ ${cssText}
     // ─── Generate PDF ─────────────────────────────────
     console.log('[PDF API] pdf start...');
 
+    const footerHtml = `
+      <div style="
+        width: 100%;
+        height: 18mm;
+        background: #1a1a2e;
+        color: rgba(255,255,255,0.55);
+        font-family: Inter, Arial, sans-serif;
+        font-size: 8px;
+        line-height: 1.35;
+        text-align: center;
+        padding: 4mm 10mm 0;
+        box-sizing: border-box;
+      ">
+        <div style="color:#c9a84c;font-weight:700;margin-bottom:1mm;">METICAL Sp. z o.o.</div>
+        <div>Oferta ma charakter informacyjny i wymaga potwierdzenia dostępności komponentów oraz warunków montażu po wizji lokalnej lub analizie technicznej.</div>
+      </div>`;
+
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
-      preferCSSPageSize: true,
+      preferCSSPageSize: false,
+      displayHeaderFooter: true,
+      headerTemplate: '<div></div>',
+      footerTemplate: footerHtml,
       margin: {
-        top: '0',
-        right: '0',
-        bottom: '0',
-        left: '0',
+        top: '12mm',
+        right: '10mm',
+        bottom: '24mm',
+        left: '10mm',
       },
     });
 

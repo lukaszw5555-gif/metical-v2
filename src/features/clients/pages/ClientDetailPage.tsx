@@ -61,7 +61,7 @@ export default function ClientDetailPage() {
     try {
       const [cl, coms, invs] = await Promise.all([getClientById(id), getClientComments(id), getInvestmentsByClientId(id)]);
       setClient(cl); setComments(coms); setInvestments(invs);
-    } catch (e) { console.error(e); }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Błąd odświeżania'); }
   }, [id]);
 
   // Permissions

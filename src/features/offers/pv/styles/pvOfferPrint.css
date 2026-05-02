@@ -18,49 +18,33 @@
 
 /* ─── A4 Document shell ──────────────────────────── */
 .pv-print-doc {
-  max-width: 800px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   background: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 2px 24px rgba(30,30,60,.08);
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: #1e1e3a;
   line-height: 1.5;
 }
 
-/* ─── A4 Page model ──────────────────────────────── */
-.pv-pdf-page {
-  position: relative;
-  width: 100%;
-  min-height: 297mm;
-  box-sizing: border-box;
-  background: #ffffff;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  break-after: page;
-  page-break-after: always;
-}
-.pv-pdf-page:last-child {
-  break-after: auto;
-  page-break-after: auto;
+/* ─── Screen preview: nice centered card ─────────── */
+@media screen {
+  .pv-print-doc {
+    max-width: 800px;
+    margin: 0 auto;
+    border-radius: 8px;
+    box-shadow: 0 2px 24px rgba(30,30,60,.08);
+  }
 }
 
-/* Page body — fills available space above footer */
-.pv-pdf-page__body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Page 2 — top breathing room */
-.pv-pdf-page--two .pv-pdf-page__body {
-  padding-top: 32px;
-}
-
-/* Footer pins to bottom of its page */
-.pv-pdf-page .pv-print-footer {
-  margin-top: auto;
+/* ─── Hidden HTML source for PDF generation ────────── */
+.pv-print-doc-source {
+  position: absolute;
+  left: -99999px;
+  top: 0;
+  width: 820px;
+  pointer-events: none;
+  opacity: 0;
 }
 
 /* ─── Premium color tokens ───────────────────────── */
@@ -79,7 +63,7 @@
 .pv-hero {
   position: relative;
   width: 100%;
-  min-height: 240px;
+  min-height: 220px;
   background-size: cover;
   background-position: center 35%;
   display: flex;
@@ -153,7 +137,7 @@
   z-index: 2;
   background: var(--pv-dark);
   border-radius: 16px;
-  padding: 22px 36px;
+  padding: 18px 32px;
   text-align: center;
   box-shadow: 0 8px 32px rgba(26,26,46,0.18);
 }
@@ -180,7 +164,7 @@
 
 /* ─── C. Scope summary bullets ───────────────────── */
 .pv-scope-summary {
-  padding: 18px 40px;
+  padding: 14px 40px;
   display: flex;
   flex-wrap: wrap;
   gap: 10px 24px;
@@ -207,7 +191,7 @@
 
 /* ─── D. Info grid (customer + technical) ────────── */
 .pv-info-section {
-  padding: 0 40px 24px;
+  padding: 0 40px 18px;
 }
 .pv-info-section h3 {
   font-size: 11px;
@@ -272,7 +256,7 @@
   border-bottom: 2px solid var(--pv-border);
 }
 .pv-scope-table tbody td {
-  padding: 7px 10px;
+  padding: 6px 10px;
   border-bottom: 1px solid var(--pv-border);
   vertical-align: top;
 }
@@ -294,7 +278,7 @@
 /* ─── F. Bottom price repeat ─────────────────────── */
 .pv-bottom-price {
   margin: 0 40px 24px;
-  padding: 16px 24px;
+  padding: 14px 22px;
   background: var(--pv-bg-light);
   border: 1px solid var(--pv-border);
   border-radius: 12px;
@@ -317,7 +301,7 @@
 
 /* ─── G. Commercial terms ────────────────────────── */
 .pv-terms-section {
-  padding: 0 40px 24px;
+  padding: 0 40px 18px;
 }
 .pv-terms-section h3 {
   font-size: 11px;
@@ -369,7 +353,7 @@
   color: var(--pv-text-muted);
 }
 
-/* ─── H. Footer ──────────────────────────────────── */
+/* ─── H. Footer (end-of-document instance) ───────── */
 .pv-print-footer {
   padding: 20px 40px;
   background: var(--pv-dark);
@@ -377,6 +361,7 @@
   font-size: 10px;
   line-height: 1.6;
   text-align: center;
+  margin-top: 24px;
 }
 .pv-print-footer strong {
   color: var(--pv-gold);
@@ -409,13 +394,11 @@
    because server-side Chromium renders in screen mode)
    ═══════════════════════════════════════════════════ */
 
-/* Table rows should not be split across pages */
-.pv-scope-table tr {
-  break-inside: avoid;
-  page-break-inside: avoid;
-}
-
-/* Keep these sections intact — never split */
+/* These sections should never be split across pages */
+.pv-hero,
+.pv-price-card,
+.pv-scope-summary,
+.pv-info-section,
 .pv-bottom-price,
 .pv-note-section,
 .pv-terms-section,
@@ -425,10 +408,24 @@
   page-break-inside: avoid;
 }
 
-/* Glue bottom-price to the preceding table */
-.pv-bottom-price {
-  break-before: avoid;
-  page-break-before: avoid;
+/* Table CAN split across pages — only rows are kept intact */
+.pv-scope-table {
+  break-inside: auto;
+  page-break-inside: auto;
+}
+.pv-scope-table tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* bottom-price flows naturally — no break-before that could push content to extra pages */
+
+/* Safe bottom margin — prevents last content from colliding with Puppeteer footerTemplate */
+.pv-signatures {
+  margin-bottom: 14mm;
+}
+.pv-print-footer {
+  margin-bottom: 0;
 }
 
 /* ═══════════════════════════════════════════════════
@@ -439,16 +436,12 @@
   body { margin: 0; padding: 0; background: #fff !important; }
   .no-print { display: none !important; }
 
-  @page { size: A4; margin: 0; }
+  @page { size: A4; margin: 12mm 10mm 24mm 10mm; }
 
   .pv-print-doc {
     max-width: none;
-    width: 210mm;
+    width: auto;
     box-shadow: none;
     border-radius: 0;
   }
-  .pv-hero { break-inside: avoid; }
-  .pv-price-card { break-inside: avoid; }
-  .pv-scope-table { break-inside: auto; }
 }
-

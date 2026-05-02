@@ -32,7 +32,7 @@ export default function OffersPage() {
               onClick={() => t.to && navigate(t.to)}
               className={`card p-5 flex flex-col items-center text-center gap-3 transition-all ${
                 t.disabled
-                  ? 'opacity-60'
+                  ? 'opacity-60 cursor-not-allowed'
                   : 'cursor-pointer hover:shadow-md hover:border-primary-200 active:scale-[0.98]'
               }`}
             >

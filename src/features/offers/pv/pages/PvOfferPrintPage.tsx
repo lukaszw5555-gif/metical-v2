@@ -38,6 +38,14 @@ export default function PvOfferPrintPage() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Mobile detection — simple width check
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
   const fmt = (v: number) =>
     new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(v);
 
@@ -119,10 +127,12 @@ export default function PvOfferPrintPage() {
         </div>
       </div>
 
-      {/* Mobile info */}
-      <div className="no-print" style={{ maxWidth: 820, margin: '0 auto 12px', padding: '10px 16px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 12, fontSize: 12, color: '#92400e', textAlign: 'center' }}>
-        Na telefonie podgląd PDF może różnić się od pliku. Najpewniejszy eksport wykonaj z komputera.
-      </div>
+      {/* Mobile info — screen only */}
+      {isMobile && (
+        <div className="no-print" style={{ maxWidth: 820, margin: '0 auto 12px', padding: '12px 16px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 12, fontSize: 12, color: '#92400e', textAlign: 'center', lineHeight: 1.6 }}>
+          Na telefonie eksport PDF może chwilę potrwać. Jeśli plik wygląda nieprawidłowo, obróć telefon poziomo albo pobierz ofertę z komputera.
+        </div>
+      )}
 
       {/* ═══ A4 DOCUMENT ═══════════════════════════════ */}
       <div className="pv-print-doc" ref={docRef}>

@@ -23,10 +23,44 @@
   background: #ffffff;
   border-radius: 8px;
   box-shadow: 0 2px 24px rgba(30,30,60,.08);
-  overflow: hidden;
   font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: #1e1e3a;
   line-height: 1.5;
+}
+
+/* ─── A4 Page model ──────────────────────────────── */
+.pv-pdf-page {
+  position: relative;
+  width: 100%;
+  min-height: 297mm;
+  box-sizing: border-box;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  break-after: page;
+  page-break-after: always;
+}
+.pv-pdf-page:last-child {
+  break-after: auto;
+  page-break-after: auto;
+}
+
+/* Page body — fills available space above footer */
+.pv-pdf-page__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Page 2 — top breathing room */
+.pv-pdf-page--two .pv-pdf-page__body {
+  padding-top: 32px;
+}
+
+/* Footer pins to bottom of its page */
+.pv-pdf-page .pv-print-footer {
+  margin-top: auto;
 }
 
 /* ─── Premium color tokens ───────────────────────── */

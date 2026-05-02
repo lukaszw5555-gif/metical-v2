@@ -131,7 +131,8 @@ export default function PvOfferPrintPage() {
         <div className="pv-hero" style={{ backgroundImage: 'url(/pv-offer-hero.png)' }}>
           <div className="pv-hero-overlay" />
           <div className="pv-hero-content">
-            <p className="pv-hero-company">METICAL</p>
+            <img src="/metical-logo-light.png" alt="METICAL" className="pv-hero-logo" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.removeAttribute('style'); }} />
+            <p className="pv-hero-company" style={{ display: 'none' }}>METICAL</p>
             <p className="pv-hero-subtitle">Oferta handlowa</p>
             <span className="pv-hero-type">
               {OFFER_TYPE_DISPLAY[offer.offer_type] || PV_OFFER_TYPE_LABELS[offer.offer_type]}

@@ -47,7 +47,7 @@
   width: 100%;
   min-height: 260px;
   background-size: cover;
-  background-position: center 40%;
+  background-position: center 35%;
   display: flex;
   align-items: flex-end;
   padding: 0;
@@ -63,6 +63,13 @@
   width: 100%;
   padding: 36px 40px 28px;
   color: #fff;
+}
+.pv-hero-logo {
+  display: block;
+  max-height: 48px;
+  width: auto;
+  object-fit: contain;
+  margin-bottom: 2px;
 }
 .pv-hero-company {
   font-size: 28px;

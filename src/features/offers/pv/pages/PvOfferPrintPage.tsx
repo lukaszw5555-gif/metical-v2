@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPvOfferById } from '../services/pvOfferService';
 import { getPvOfferItems } from '../services/pvOfferItemsService';
-import { exportElementToPdf } from '../services/exportPvOfferPdf';
+import { generatePvOfferPdfProgrammatic } from '../services/generatePvOfferPdf';
 import type { PvOffer, PvOfferItem } from '../types/pvOfferTypes';
 import { PV_OFFER_TYPE_LABELS } from '../types/pvOfferTypes';
 import { Loader2, AlertCircle, Printer, ArrowLeft, Download } from 'lucide-react';
@@ -109,11 +109,12 @@ export default function PvOfferPrintPage() {
           <button
             disabled={exporting}
             onClick={async () => {
-              if (!docRef.current || !offer) return;
+              if (!offer) return;
               setExporting(true);
               try {
                 const slug = (offer.offer_number || offer.id).replace(/[\s/\\]+/g, '-');
-                await exportElementToPdf(docRef.current, `oferta-pv-${slug}`);
+                const pdf = await generatePvOfferPdfProgrammatic(offer, items);
+                pdf.save(`oferta-pv-${slug}.pdf`);
               } catch (err) {
                 console.error('[PDF]', err);
                 alert('Nie udało się wygenerować PDF. Spróbuj użyć opcji Drukuj.');

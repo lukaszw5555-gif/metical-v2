@@ -33,6 +33,23 @@ const MX = 18;
 const CW = PW - MX * 2;
 
 // ─── Helpers ─────────────────────────────────────────────────
+async function loadImageAsDataUrl(src: string): Promise<string | null> {
+  try {
+    const response = await fetch(src);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch (err) {
+    console.error(`[PDF] Failed to load image: ${src}`, err);
+    return null;
+  }
+}
+
 function fmtCurrency(value: number): string {
   return new Intl.NumberFormat('pl-PL', {
     style: 'currency', currency: 'PLN', maximumFractionDigits: 2,
@@ -81,6 +98,12 @@ export async function generatePvOfferPdfProgrammatic(
   offer: PvOffer,
   items: PvOfferItem[]
 ): Promise<jsPDF> {
+  // Load assets
+  const [logoDataUrl, heroDataUrl] = await Promise.all([
+    loadImageAsDataUrl('/metical-logo-light.png'),
+    loadImageAsDataUrl('/pv-offer-hero.png'),
+  ]);
+
   const doc = new jsPDF('p', 'mm', 'a4');
 
   // ─── 1. COMPACT HEADER (35mm) ───────────────────
@@ -90,10 +113,39 @@ export async function generatePvOfferPdfProgrammatic(
   doc.setFillColor(...C.gold);
   doc.rect(0, 0, PW, 1, 'F');
 
-  doc.setFontSize(22);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(...C.gold);
-  doc.text('METICAL', MX, 18);
+  // Hero Image as background in header (right side)
+  if (heroDataUrl) {
+    const heroX = 120;
+    const heroW = 90;
+    const heroH = headH - 1;
+    doc.addImage(heroDataUrl, 'PNG', heroX, 1, heroW, heroH, undefined, 'FAST');
+    
+    // Dark overlay for readability
+    // @ts-ignore – jsPDF GState is often not typed correctly in all versions
+    if (typeof (doc as any).GState === 'function') {
+      const gState = new (doc as any).GState({ opacity: 0.65 });
+      doc.setGState(gState);
+      doc.setFillColor(...C.dark);
+      doc.rect(heroX, 1, heroW, heroH, 'F');
+      doc.setGState(new (doc as any).GState({ opacity: 1 }));
+    } else {
+      // Fallback if GState not available: solid dark block with slightly less width
+      doc.setFillColor(...C.dark);
+      doc.rect(heroX, 1, heroW / 2, heroH, 'F');
+    }
+  }
+
+  // Logo
+  if (logoDataUrl) {
+    const logoH = 12;
+    const logoW = 36; // Approx 3:1 ratio for Metical logo
+    doc.addImage(logoDataUrl, 'PNG', MX, 8, logoW, logoH, undefined, 'FAST');
+  } else {
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...C.gold);
+    doc.text('METICAL', MX, 18);
+  }
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');

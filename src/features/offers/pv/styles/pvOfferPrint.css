@@ -45,7 +45,7 @@
 .pv-hero {
   position: relative;
   width: 100%;
-  min-height: 260px;
+  min-height: 240px;
   background-size: cover;
   background-position: center 35%;
   display: flex;
@@ -119,7 +119,7 @@
   z-index: 2;
   background: var(--pv-dark);
   border-radius: 16px;
-  padding: 28px 36px;
+  padding: 22px 36px;
   text-align: center;
   box-shadow: 0 8px 32px rgba(26,26,46,0.18);
 }
@@ -146,7 +146,7 @@
 
 /* ─── C. Scope summary bullets ───────────────────── */
 .pv-scope-summary {
-  padding: 24px 40px;
+  padding: 18px 40px;
   display: flex;
   flex-wrap: wrap;
   gap: 10px 24px;
@@ -238,7 +238,7 @@
   border-bottom: 2px solid var(--pv-border);
 }
 .pv-scope-table tbody td {
-  padding: 9px 10px;
+  padding: 7px 10px;
   border-bottom: 1px solid var(--pv-border);
   vertical-align: top;
 }
@@ -371,6 +371,33 @@
 }
 
 /* ═══════════════════════════════════════════════════
+   PAGE-BREAK RULES (apply in both screen + print
+   because server-side Chromium renders in screen mode)
+   ═══════════════════════════════════════════════════ */
+
+/* Table rows should not be split across pages */
+.pv-scope-table tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Keep these sections intact — never split */
+.pv-bottom-price,
+.pv-note-section,
+.pv-terms-section,
+.pv-signatures,
+.pv-print-footer {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Glue bottom-price to the preceding table */
+.pv-bottom-price {
+  break-before: avoid;
+  page-break-before: avoid;
+}
+
+/* ═══════════════════════════════════════════════════
    PRINT MEDIA
    ═══════════════════════════════════════════════════ */
 @media print {
@@ -389,7 +416,5 @@
   .pv-hero { break-inside: avoid; }
   .pv-price-card { break-inside: avoid; }
   .pv-scope-table { break-inside: auto; }
-  .pv-scope-table tr { break-inside: avoid; }
-  .pv-terms-section { break-inside: avoid; }
-  .pv-print-footer { break-inside: avoid; }
 }
+

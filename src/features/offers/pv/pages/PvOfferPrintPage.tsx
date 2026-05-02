@@ -113,7 +113,8 @@ export default function PvOfferPrintPage() {
               if (!offer || !docRef.current) return;
               setExporting(true);
               try {
-                const slug = (offer.offer_number || offer.id).replace(/[\s/\\]+/g, '-');
+                const num = (offer.offer_number || offer.id);
+                const slug = num.replace(/[/\\]/g, '-').replace(/[^a-zA-Z0-9_-]/g, '');
                 const filename = `oferta-pv-${slug}`;
 
                 try {

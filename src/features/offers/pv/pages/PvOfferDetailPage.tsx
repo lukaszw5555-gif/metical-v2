@@ -6,7 +6,7 @@ import { getPvOfferById } from '../services/pvOfferService';
 import { getPvOfferItems } from '../services/pvOfferItemsService';
 import type { PvOffer, PvOfferItem } from '../types/pvOfferTypes';
 import { PV_OFFER_STATUS_LABELS, PV_OFFER_STATUS_COLORS, PV_OFFER_TYPE_LABELS, PV_OFFER_TYPE_COLORS, PV_STRUCTURE_TYPES, PV_ROOF_TYPES, PV_INSTALLATION_TYPES } from '../types/pvOfferTypes';
-import { Loader2, AlertCircle, Pencil, Sun, User, Phone, Mail, MapPin, Zap, Hash, ExternalLink, FileText, TrendingUp, ArrowUp, ArrowDown, Printer } from 'lucide-react';
+import { Loader2, AlertCircle, Pencil, Sun, User, Phone, Mail, MapPin, Zap, Hash, ExternalLink, FileText, TrendingUp, ArrowUp, ArrowDown, Download } from 'lucide-react';
 
 export default function PvOfferDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -59,7 +59,7 @@ export default function PvOfferDetailPage() {
               )}
             </div>
             <div className="flex items-center gap-1.5">
-              <button onClick={() => navigate(`/sales/offers/pv/${offer.id}/print`)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-600 bg-surface-100 hover:bg-surface-200 transition-colors"><Printer size={12} />Eksport PDF</button>
+              <button onClick={() => navigate(`/sales/offers/pv/${offer.id}/print`)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-600 bg-surface-100 hover:bg-surface-200 transition-colors"><Download size={12} />PDF</button>
               <button onClick={() => navigate(`/sales/offers/pv/${offer.id}/edit`)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary-600 bg-primary-50 hover:bg-primary-100 transition-colors"><Pencil size={12} />Edytuj</button>
             </div>
           </div>
@@ -184,13 +184,17 @@ export default function PvOfferDetailPage() {
 
         {/* PDF Export */}
         <div className="card p-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <FileText size={16} className="text-primary-500" />
-              <p className="text-xs font-medium text-gray-900 uppercase tracking-wide">Eksport PDF</p>
+              <div>
+                <p className="text-xs font-medium text-gray-900 uppercase tracking-wide">Dokument oferty</p>
+                <p className="text-[10px] text-muted-400 mt-0.5">Podgląd, druk lub pobranie PDF</p>
+              </div>
             </div>
-            <button onClick={() => navigate(`/sales/offers/pv/${offer.id}/print`)} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 active:scale-[0.98] transition-all">
-              <Printer size={14} />Otwórz widok wydruku
+            <button onClick={() => navigate(`/sales/offers/pv/${offer.id}/print`)}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 active:scale-[0.98] transition-all shadow-sm">
+              <Download size={16} />Podgląd i pobranie PDF
             </button>
           </div>
         </div>

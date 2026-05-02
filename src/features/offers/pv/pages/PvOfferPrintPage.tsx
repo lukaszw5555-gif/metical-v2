@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getPvOfferById } from '../services/pvOfferService';
 import { getPvOfferItems } from '../services/pvOfferItemsService';
+import { exportElementToPdf } from '../services/exportPvOfferPdf';
 import type { PvOffer, PvOfferItem } from '../types/pvOfferTypes';
 import { PV_OFFER_TYPE_LABELS, PV_OFFER_TYPE_COLORS } from '../types/pvOfferTypes';
-import { Loader2, AlertCircle, Printer, ArrowLeft } from 'lucide-react';
+import { Loader2, AlertCircle, Printer, ArrowLeft, Download } from 'lucide-react';
 import '../styles/pvOfferPrint.css';
 
 export default function PvOfferPrintPage() {
@@ -14,6 +15,8 @@ export default function PvOfferPrintPage() {
   const [items, setItems] = useState<PvOfferItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const docRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -77,14 +80,34 @@ export default function PvOfferPrintPage() {
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-600 bg-white hover:bg-surface-100 transition-colors">
           <ArrowLeft size={14} />Wróć do oferty
         </button>
-        <button onClick={() => window.print()}
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 active:scale-[0.98] transition-all shadow-sm">
-          <Printer size={16} />Drukuj / Zapisz PDF
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => window.print()}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-muted-600 bg-white hover:bg-surface-100 transition-colors">
+            <Printer size={16} />Drukuj
+          </button>
+          <button
+            disabled={exporting}
+            onClick={async () => {
+              if (!docRef.current || !offer) return;
+              setExporting(true);
+              try {
+                const slug = (offer.offer_number || offer.id).replace(/[\s/\\]+/g, '-');
+                await exportElementToPdf(docRef.current, `oferta-pv-${slug}`);
+              } catch (err) {
+                console.error('[PDF]', err);
+                alert('Nie udało się wygenerować PDF. Spróbuj użyć opcji Drukuj.');
+              } finally {
+                setExporting(false);
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 active:scale-[0.98] transition-all shadow-sm disabled:opacity-60">
+            {exporting ? <><Loader2 size={16} className="animate-spin" />Generowanie PDF...</> : <><Download size={16} />Pobierz PDF</>}
+          </button>
+        </div>
       </div>
 
       {/* ─── A4 Document ──────────────────────────────────── */}
-      <div className="pv-print-doc">
+      <div className="pv-print-doc" ref={docRef}>
 
         {/* A. Header */}
         <div className="pv-print-header">

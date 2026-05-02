@@ -118,15 +118,27 @@ export async function exportPvOfferServerPdf(
     throw new Error('Received empty PDF from server');
   }
 
-  const url = window.URL.createObjectURL(blob);
-
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   if (isIOS) {
-    // iOS Safari ignores <a download> on blob URLs.
-    // Navigate to the blob URL directly — user gets native PDF viewer + share sheet.
+    // Try Web Share API with File() so iOS sees the real filename
+    const pdfFile = new File([blob], `${filename}.pdf`, { type: 'application/pdf' });
+
+    if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+      try {
+        await navigator.share({ files: [pdfFile], title: filename });
+        return;
+      } catch (shareErr) {
+        // User cancelled or share failed — fall through to blob URL
+        console.warn('[PDF CLIENT] Web Share cancelled/failed:', shareErr);
+      }
+    }
+
+    // Fallback: open blob URL directly (Safari may show "Unknown.pdf")
+    const url = window.URL.createObjectURL(blob);
     window.location.href = url;
   } else {
+    const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = `${filename}.pdf`;

@@ -7,6 +7,7 @@ import { exportElementToPdf } from '../services/exportPvOfferPdf';
 import type { PvOffer, PvOfferItem } from '../types/pvOfferTypes';
 import { PV_OFFER_TYPE_LABELS } from '../types/pvOfferTypes';
 import { Loader2, AlertCircle, Printer, ArrowLeft, Download } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
 import '../styles/pvOfferPrint.css';
 
 const OFFER_TYPE_DISPLAY: Record<string, string> = {
@@ -115,9 +116,62 @@ export default function PvOfferPrintPage() {
               try {
                 const slug = (offer.offer_number || offer.id).replace(/[\s/\\]+/g, '-');
                 const isMobilePdfDevice = window.innerWidth < 768 || /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent);
+                
                 if (isMobilePdfDevice) {
-                  const pdf = await generatePvOfferPdfProgrammatic(offer, items);
-                  pdf.save(`oferta-pv-${slug}.pdf`);
+                  try {
+                    // 1. Prepare filtered data (NO internal pricing/costs)
+                    const payload = {
+                      offer_number: offer.offer_number,
+                      offer_type: offer.offer_type,
+                      customer_name: offer.customer_name,
+                      customer_phone: offer.customer_phone,
+                      customer_email: offer.customer_email,
+                      customer_city: offer.customer_city,
+                      investment_address: offer.investment_address,
+                      pv_power_kw: offer.pv_power_kw,
+                      panel_power_w: offer.panel_power_w,
+                      panel_count: offer.panel_count,
+                      inverter_name: offer.inverter_name,
+                      valid_until: offer.valid_until,
+                      created_at: offer.created_at,
+                      vat_rate: offer.vat_rate,
+                      price_gross: offer.price_gross,
+                      offer_note: offer.offer_note,
+                      items: items.map(i => ({
+                        category: i.category,
+                        manufacturer: i.manufacturer,
+                        trade_name: i.trade_name,
+                        unit: i.unit,
+                        quantity: i.quantity,
+                        power_w: i.power_w,
+                        capacity_kwh: i.capacity_kwh
+                      }))
+                    };
+
+                    // 2. Call Supabase Edge Function
+                    const { data, error } = await supabase.functions.invoke('generate-pv-pdf', {
+                      body: payload
+                    });
+
+                    if (error) throw error;
+
+                    // 3. Download the blob
+                    const blob = new Blob([data], { type: 'application/pdf' });
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `oferta-pv-${slug}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                    
+                  } catch (edgeErr) {
+                    console.warn('[PDF] Edge Function failed, using local fallback:', edgeErr);
+                    // Fallback to local generator
+                    const pdf = await generatePvOfferPdfProgrammatic(offer, items);
+                    pdf.save(`oferta-pv-${slug}.pdf`);
+                  }
                 } else {
                   if (!docRef.current) throw new Error('Brak dokumentu PDF');
                   await exportElementToPdf(docRef.current, `oferta-pv-${slug}`);

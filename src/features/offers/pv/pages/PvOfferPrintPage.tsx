@@ -121,22 +121,23 @@ export default function PvOfferPrintPage() {
                   // 1. Primary path: Server-side premium PDF (Universal)
                   await exportPvOfferServerPdf(docRef.current, filename);
                 } catch (serverErr) {
-                  console.warn('[PDF] Server-side export failed, falling back:', serverErr);
+                  console.error('[PDF] Server-side export failed:', serverErr);
                   
                   if (window.innerWidth < 768) {
-                    // Mobile fallback: Show alert instead of silent programmatic fallback
-                    if (confirm('Generowanie PDF premium nie powiodło się. Czy chcesz pobrać uproszczoną wersję awaryjną?')) {
+                    // Mobile fallback: Show alert, don't silently use jsPDF
+                    if (confirm('PDF premium nie został wygenerowany. Szczegóły w konsoli.\n\nCzy chcesz pobrać uproszczoną wersję awaryjną?')) {
                       const pdf = await generatePvOfferPdfProgrammatic(offer, items);
                       pdf.save(`${filename}.pdf`);
                     }
                   } else {
                     // Desktop fallback: html2canvas
+                    console.warn('[PDF] Using html2canvas desktop fallback');
                     await exportElementToPdf(docRef.current, filename);
                   }
                 }
               } catch (err) {
-                console.error('[PDF]', err);
-                alert('Nie udało się wygenerować PDF. Spróbuj użyć opcji Drukuj.');
+                console.error('[PDF] Fatal error:', err);
+                alert('Nie udało się wygenerować PDF. Szczegóły zapisano w konsoli.');
               } finally {
                 setExporting(false);
               }

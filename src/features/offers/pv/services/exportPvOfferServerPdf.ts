@@ -13,69 +13,75 @@ export async function exportPvOfferServerPdf(
   const html = element.outerHTML;
 
   // ─── 2. Collect stylesheet URLs ─────────────────────
-  const stylesheetUrls = Array.from(
+  const stylesheets = Array.from(
     document.querySelectorAll('link[rel="stylesheet"]')
   ).map((link) => (link as HTMLLinkElement).href);
 
-  // ─── 3. Collect all CSS rules from accessible stylesheets ─
-  let cssText = '';
-
-  for (const sheet of Array.from(document.styleSheets)) {
-    try {
-      const rules = Array.from(sheet.cssRules || []);
-      cssText += rules.map((rule) => rule.cssText).join('\n') + '\n';
-    } catch {
-      // Cross-origin stylesheets cannot be read — that's OK,
-      // they'll be loaded via stylesheetUrls + <base href> on the server.
-    }
-  }
-
-  // ─── 4. Collect inline <style> tags ─────────────────
+  // ─── 3. Collect inline <style> tags ─────────────────
   const inlineStyles = Array.from(document.querySelectorAll('style'))
-    .map((style) => style.textContent || '')
-    .join('\n');
+    .map((style) => style.textContent || '');
 
-  cssText += '\n' + inlineStyles;
+  console.log('[PDF CLIENT] sending request');
+  console.log('[PDF CLIENT] html length:', html.length);
+  console.log('[PDF CLIENT] stylesheets count:', stylesheets.length);
+  console.log('[PDF CLIENT] inlineStyles count:', inlineStyles.length);
 
-  // ─── 5. POST to Vercel API ──────────────────────────
+  // ─── 4. POST to Vercel API ──────────────────────────
   const response = await fetch('/api/generate-pv-offer-pdf', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       html,
-      cssText,
-      stylesheetUrls,
+      stylesheets,
+      inlineStyles,
       origin: window.location.origin,
       filename,
     }),
   });
 
+  console.log('[PDF CLIENT] response status:', response.status);
+  console.log('[PDF CLIENT] response content-type:', response.headers.get('content-type'));
+
+  // ─── 5. Validate response ──────────────────────────
   if (!response.ok) {
-    const err = await response
-      .json()
-      .catch(() => ({ error: 'Błąd połączenia z serwerem' }));
-    throw new Error(err.error || 'Nie udało się wygenerować PDF na serwerze');
+    const errorText = await response.text().catch(() => 'Brak odpowiedzi');
+    console.error('[PDF CLIENT] server error response:', errorText);
+    throw new Error(`Server PDF error (${response.status}): ${errorText}`);
+  }
+
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/pdf')) {
+    const bodyText = await response.text().catch(() => '');
+    console.error('[PDF CLIENT] unexpected content-type:', contentType, bodyText);
+    throw new Error(`Unexpected response type: ${contentType}`);
   }
 
   // ─── 6. Download the PDF blob ───────────────────────
   const blob = await response.blob();
+  console.log('[PDF CLIENT] blob size:', blob.size);
+
+  if (blob.size === 0) {
+    throw new Error('Received empty PDF from server');
+  }
+
   const url = window.URL.createObjectURL(blob);
 
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${filename}.pdf`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  // ─── 7. Trigger download / Safari handling ──────────
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  // ─── 7. iOS Safari fallback ─────────────────────────
-  // Safari on iOS ignores the download attribute on blob URLs.
-  // Opening the URL in a new tab lets the user view and save the PDF
-  // via the native iOS share sheet.
-  if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-    window.open(url, '_blank');
+  if (isIOS) {
+    // On iOS Safari, <a download> doesn't work with blob URLs.
+    // Open the PDF directly — user can use the native share sheet to save.
+    window.location.href = url;
+  } else {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   // ─── 8. Cleanup ─────────────────────────────────────
-  setTimeout(() => window.URL.revokeObjectURL(url), 3000);
+  setTimeout(() => window.URL.revokeObjectURL(url), 5000);
 }

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import type { PvOffer } from '../types/pvOfferTypes';
-import { PV_OFFER_STATUS_LABELS, PV_OFFER_STATUS_COLORS } from '../types/pvOfferTypes';
+import { PV_OFFER_STATUS_LABELS, PV_OFFER_STATUS_COLORS, PV_OFFER_TYPE_LABELS, PV_OFFER_TYPE_COLORS } from '../types/pvOfferTypes';
 import { Sun, User, Zap, ExternalLink } from 'lucide-react';
 
 interface PvOfferCardProps {
@@ -55,8 +55,14 @@ export default function PvOfferCard({ offer }: PvOfferCardProps) {
         <span className="text-muted-400">{fmtDate(offer.created_at)}</span>
       </div>
 
-      {/* Source tags */}
-      <div className="flex items-center gap-2">
+      {/* Source tags + type badge */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {offer.offer_type && (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold"
+            style={{ backgroundColor: PV_OFFER_TYPE_COLORS[offer.offer_type] + '14', color: PV_OFFER_TYPE_COLORS[offer.offer_type] }}>
+            {PV_OFFER_TYPE_LABELS[offer.offer_type]}
+          </span>
+        )}
         {offer.lead_id && (
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 text-[10px] font-medium">
             <ExternalLink size={9} />Lead

@@ -1,6 +1,7 @@
 // ─── PV Offer Types ──────────────────────────────────────
 
 export type PvOfferStatus = 'draft' | 'sent' | 'accepted' | 'rejected';
+export type PvOfferType = 'pv' | 'pv_me' | 'me' | 'individual';
 
 export interface PvOffer {
   id: string;
@@ -30,6 +31,7 @@ export interface PvOffer {
   offer_note: string | null;
   internal_note: string | null;
   status: PvOfferStatus;
+  offer_type: PvOfferType;
   valid_until: string | null;
   created_at: string;
   updated_at: string;
@@ -61,6 +63,7 @@ export interface CreatePvOfferInput {
   offer_note?: string | null;
   internal_note?: string | null;
   status?: PvOfferStatus;
+  offer_type?: PvOfferType;
   valid_until?: string | null;
 }
 
@@ -146,6 +149,31 @@ export const PV_OFFER_STATUS_COLORS: Record<PvOfferStatus, string> = {
   sent: '#2563eb',      // blue-600
   accepted: '#16a34a',  // green-600
   rejected: '#dc2626',  // red-600
+};
+
+// ─── Offer Type Constants ────────────────────────────────
+
+export const PV_OFFER_TYPES: PvOfferType[] = ['pv', 'pv_me', 'me', 'individual'];
+
+export const PV_OFFER_TYPE_LABELS: Record<PvOfferType, string> = {
+  pv: 'Fotowoltaika',
+  pv_me: 'Fotowoltaika + magazyn energii',
+  me: 'Magazyn energii',
+  individual: 'Oferta indywidualna',
+};
+
+export const PV_OFFER_TYPE_DESCRIPTIONS: Record<PvOfferType, string> = {
+  pv: 'Instalacja PV bez magazynu energii',
+  pv_me: 'Instalacja PV z magazynem energii',
+  me: 'Sam magazyn energii lub rozbudowa istniejącej instalacji',
+  individual: 'Dowolna konfiguracja bez wymaganych kroków',
+};
+
+export const PV_OFFER_TYPE_COLORS: Record<PvOfferType, string> = {
+  pv: '#d97706',       // amber-600
+  pv_me: '#7c3aed',    // violet-600
+  me: '#059669',       // emerald-600
+  individual: '#6366f1', // indigo-500
 };
 
 export const PV_STRUCTURE_TYPES = [

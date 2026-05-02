@@ -3,11 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/layout/PageHeader';
 import { getPvOffers } from '../services/pvOfferService';
 import PvOfferCard from '../components/PvOfferCard';
-import type { PvOffer, PvOfferStatus } from '../types/pvOfferTypes';
-import { PV_OFFER_STATUSES, PV_OFFER_STATUS_LABELS } from '../types/pvOfferTypes';
-import { Sun, Plus, Loader2, AlertCircle, Search } from 'lucide-react';
+import type { PvOffer, PvOfferStatus, PvOfferType } from '../types/pvOfferTypes';
+import { PV_OFFER_STATUSES, PV_OFFER_STATUS_LABELS, PV_OFFER_TYPES, PV_OFFER_TYPE_LABELS, PV_OFFER_TYPE_DESCRIPTIONS, PV_OFFER_TYPE_COLORS } from '../types/pvOfferTypes';
+import { Sun, Plus, Loader2, AlertCircle, Search, Battery, Zap, FileText } from 'lucide-react';
 
 type StatusFilter = 'all' | PvOfferStatus;
+
+const TYPE_ICONS: Record<PvOfferType, React.ReactNode> = {
+  pv: <Sun size={20} />,
+  pv_me: <Zap size={20} />,
+  me: <Battery size={20} />,
+  individual: <FileText size={20} />,
+};
 
 export default function PvOffersPage() {
   const navigate = useNavigate();
@@ -52,6 +59,27 @@ export default function PvOffersPage() {
     <>
       <PageHeader title="Oferty PV" showBack />
       <div className="px-4 py-4 mx-auto max-w-lg md:max-w-5xl pb-24 md:pb-8">
+
+        {/* ─── New Offer Type Tiles ──────────── */}
+        <div className="mb-5">
+          <p className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-2">Utwórz nową ofertę</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {PV_OFFER_TYPES.map(t => {
+              const color = PV_OFFER_TYPE_COLORS[t];
+              return (
+                <button key={t} onClick={() => navigate(`/sales/offers/pv/new?type=${t}`)}
+                  className="card p-3 flex flex-col items-center text-center gap-2 hover:shadow-md hover:border-primary-200 active:scale-[0.98] transition-all cursor-pointer">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: color + '18', color }}>
+                    {TYPE_ICONS[t]}
+                  </div>
+                  <p className="text-[11px] font-semibold text-gray-700 leading-tight">{PV_OFFER_TYPE_LABELS[t]}</p>
+                  <p className="text-[9px] text-muted-400 leading-tight hidden md:block">{PV_OFFER_TYPE_DESCRIPTIONS[t]}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Search */}
         <div className="relative mb-3">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-400" />
@@ -98,17 +126,13 @@ export default function PvOffersPage() {
             <p className="text-sm text-muted-500 max-w-xs mb-6">
               {search || statusFilter !== 'all' ? 'Brak wyników dla wybranych filtrów.' : 'Utwórz pierwszą ofertę fotowoltaiczną.'}
             </p>
-            <button onClick={() => navigate('/sales/offers/pv/new')}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-xl hover:bg-primary-700 active:scale-[0.98] transition-all shadow-sm">
-              <Plus size={18} />Nowa oferta PV
-            </button>
           </div>
         )}
       </div>
 
       {/* FAB */}
       {!loading && (
-        <button onClick={() => navigate('/sales/offers/pv/new')} aria-label="Nowa oferta PV"
+        <button onClick={() => navigate('/sales/offers/pv/new?type=pv')} aria-label="Nowa oferta PV"
           className="fixed right-4 bottom-20 md:bottom-8 md:right-8 z-40 w-14 h-14 bg-primary-600 text-white rounded-2xl shadow-lg hover:bg-primary-700 active:scale-95 transition-all flex items-center justify-center"
           style={{ marginBottom: 'env(safe-area-inset-bottom, 0px)' }}>
           <Plus size={24} />

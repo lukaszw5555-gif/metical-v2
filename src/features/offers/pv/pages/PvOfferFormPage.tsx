@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, type FormEvent } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import PageHeader from '@/components/layout/PageHeader';
 import { useAuth } from '@/context/AuthContext';
 import { getLeads } from '@/features/sales/services/salesLeadService';
@@ -15,9 +15,10 @@ import {
 } from '../utils/pvOfferCalculations';
 import type { SalesLead, UserProfile } from '@/types/database';
 import type { Client } from '@/features/clients/services/clientService';
-import type { PvOfferStatus, PvOfferItemDraft } from '../types/pvOfferTypes';
+import type { PvOfferStatus, PvOfferType, PvOfferItemDraft } from '../types/pvOfferTypes';
 import {
   PV_OFFER_STATUSES, PV_OFFER_STATUS_LABELS,
+  PV_OFFER_TYPES, PV_OFFER_TYPE_LABELS, PV_OFFER_TYPE_DESCRIPTIONS, PV_OFFER_TYPE_COLORS,
   PV_STRUCTURE_TYPES, PV_ROOF_TYPES, PV_INSTALLATION_TYPES,
 } from '../types/pvOfferTypes';
 import { Loader2, AlertCircle, Check } from 'lucide-react';
@@ -28,6 +29,7 @@ export default function PvOfferFormPage() {
   const { id } = useParams<{ id: string }>();
   const isEdit = !!id;
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const userId = user?.id ?? '';
 
@@ -64,6 +66,10 @@ export default function PvOfferFormPage() {
   const [internalNote, setInternalNote] = useState('');
   const [status, setStatus] = useState<PvOfferStatus>('draft');
   const [validUntil, setValidUntil] = useState('');
+  const [offerType, setOfferType] = useState<PvOfferType>(() => {
+    const qp = searchParams.get('type');
+    return (qp && PV_OFFER_TYPES.includes(qp as PvOfferType)) ? qp as PvOfferType : 'pv';
+  });
 
   // Items state
   const [items, setItems] = useState<PvOfferItemDraft[]>([]);
@@ -117,6 +123,7 @@ export default function PvOfferFormPage() {
         setOfferNote(o.offer_note || '');
         setInternalNote(o.internal_note || '');
         setStatus(o.status);
+        setOfferType(o.offer_type || 'pv');
         setValidUntil(o.valid_until || '');
         if (o.lead_id) { setSource('lead'); setSelectedLeadId(o.lead_id); }
         else if (o.client_id) { setSource('client'); setSelectedClientId(o.client_id); }
@@ -183,6 +190,7 @@ export default function PvOfferFormPage() {
         offer_note: offerNote.trim() || null,
         internal_note: internalNote.trim() || null,
         status,
+        offer_type: offerType,
         valid_until: validUntil || null,
       };
 
@@ -241,6 +249,23 @@ export default function PvOfferFormPage() {
             {/* Left column — form fields */}
             <div className="md:flex-1 space-y-6">
               {error && (<div className="flex items-start gap-2 p-4 bg-red-50 border border-red-100 rounded-xl"><AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" /><p className="text-sm text-red-700">{error}</p></div>)}
+
+              {/* Offer type panel */}
+              <div className="card p-4">
+                <p className="text-xs font-bold text-gray-900 uppercase tracking-wide mb-3">Typ oferty</p>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: PV_OFFER_TYPE_COLORS[offerType] + '18', color: PV_OFFER_TYPE_COLORS[offerType] }}>
+                    <span className="text-lg font-bold">{offerType === 'pv' ? '☀' : offerType === 'pv_me' ? '⚡' : offerType === 'me' ? '🔋' : '📋'}</span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-900">{PV_OFFER_TYPE_LABELS[offerType]}</p>
+                    <p className="text-[11px] text-muted-400">{PV_OFFER_TYPE_DESCRIPTIONS[offerType]}</p>
+                  </div>
+                </div>
+                <select value={offerType} onChange={e => setOfferType(e.target.value as PvOfferType)} className={ic}>
+                  {PV_OFFER_TYPES.map(t => <option key={t} value={t}>{PV_OFFER_TYPE_LABELS[t]}</option>)}
+                </select>
+              </div>
 
               {/* Source selector */}
               <div className="card p-4">

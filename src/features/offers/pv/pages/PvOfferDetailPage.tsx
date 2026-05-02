@@ -4,7 +4,7 @@ import PageHeader from '@/components/layout/PageHeader';
 import { getPvOfferById } from '../services/pvOfferService';
 import { getPvOfferItems } from '../services/pvOfferItemsService';
 import type { PvOffer, PvOfferItem } from '../types/pvOfferTypes';
-import { PV_OFFER_STATUS_LABELS, PV_OFFER_STATUS_COLORS, PV_STRUCTURE_TYPES, PV_ROOF_TYPES, PV_INSTALLATION_TYPES } from '../types/pvOfferTypes';
+import { PV_OFFER_STATUS_LABELS, PV_OFFER_STATUS_COLORS, PV_OFFER_TYPE_LABELS, PV_OFFER_TYPE_COLORS, PV_STRUCTURE_TYPES, PV_ROOF_TYPES, PV_INSTALLATION_TYPES } from '../types/pvOfferTypes';
 import { Loader2, AlertCircle, Pencil, Sun, User, Phone, Mail, MapPin, Zap, Hash, ExternalLink, FileText, Construction, TrendingUp } from 'lucide-react';
 
 export default function PvOfferDetailPage() {
@@ -44,9 +44,17 @@ export default function PvOfferDetailPage() {
         {/* Status + Actions */}
         <div className="card p-4">
           <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-semibold" style={{ backgroundColor: sc + '18', color: sc }}>
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: sc }} />{PV_OFFER_STATUS_LABELS[offer.status]}
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-sm font-semibold" style={{ backgroundColor: sc + '18', color: sc }}>
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: sc }} />{PV_OFFER_STATUS_LABELS[offer.status]}
+              </span>
+              {offer.offer_type && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold"
+                  style={{ backgroundColor: PV_OFFER_TYPE_COLORS[offer.offer_type] + '14', color: PV_OFFER_TYPE_COLORS[offer.offer_type] }}>
+                  {PV_OFFER_TYPE_LABELS[offer.offer_type]}
+                </span>
+              )}
+            </div>
             <button onClick={() => navigate(`/sales/offers/pv/${offer.id}/edit`)} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-primary-600 bg-primary-50 hover:bg-primary-100 transition-colors"><Pencil size={12} />Edytuj</button>
           </div>
           {offer.valid_until && <p className="text-xs text-muted-500 mt-2">Ważna do: {fmtDate(offer.valid_until)}</p>}

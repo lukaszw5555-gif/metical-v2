@@ -1,12 +1,13 @@
 import { supabase } from '@/lib/supabase/client';
 import type { OfferSettings, UpdateOfferSettingsInput } from './offerSettingsTypes';
 
-// ─── Fetch global settings (create default if missing) ───
+// ─── Fetch settings for given offer type (default 'PV') ──
 
-export async function getOfferSettings(): Promise<OfferSettings> {
+export async function getOfferSettings(offerType: string = 'PV'): Promise<OfferSettings> {
   const { data, error } = await supabase
     .from('offer_settings')
     .select('*')
+    .eq('offer_type', offerType)
     .limit(1)
     .maybeSingle();
 
@@ -18,10 +19,11 @@ export async function getOfferSettings(): Promise<OfferSettings> {
   const { data: created, error: insertErr } = await supabase
     .from('offer_settings')
     .insert({
+      offer_type: offerType,
       company_name: 'METICAL Sp. z o.o.',
       default_offer_valid_days: 14,
       default_vat_rate: 8,
-      offer_number_prefix: 'PV',
+      offer_number_prefix: offerType,
       offer_number_next: 1,
     })
     .select()
@@ -32,6 +34,7 @@ export async function getOfferSettings(): Promise<OfferSettings> {
     console.warn('[OfferSettings] No settings row and cannot create:', insertErr.message);
     return {
       id: '',
+      offer_type: offerType,
       company_name: 'METICAL Sp. z o.o.',
       company_address: null,
       company_nip: null,
@@ -42,7 +45,7 @@ export async function getOfferSettings(): Promise<OfferSettings> {
       default_realization_time: null,
       default_offer_valid_days: 14,
       default_vat_rate: 8,
-      offer_number_prefix: 'PV',
+      offer_number_prefix: offerType,
       offer_number_next: 1,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

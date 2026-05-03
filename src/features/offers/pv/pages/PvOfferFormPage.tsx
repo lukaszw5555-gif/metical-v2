@@ -115,7 +115,7 @@ export default function PvOfferFormPage() {
   const loadData = useCallback(async () => {
     try {
       const [ld, cl, pr, settings] = await Promise.all([
-        getLeads(), getClients(), getActiveProfiles(), getOfferSettings(),
+        getLeads(), getClients(), getActiveProfiles(), getOfferSettings('PV'),
       ]);
       setLeads(ld); setClients(cl); setProfiles(pr);
 

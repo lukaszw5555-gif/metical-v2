@@ -21,7 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { html, cssText = '', origin = '', filename } = req.body || {};
+  const { html, cssText = '', origin = '', filename, footerCompanyName, footerText } = req.body || {};
 
   console.log('[PDF API] method:', req.method);
   console.log('[PDF API] html length:', html ? html.length : 0);
@@ -132,6 +132,9 @@ ${cssText}
     // ─── Generate PDF ─────────────────────────────────
     console.log('[PDF API] pdf start...');
 
+    const footerName = footerCompanyName || 'METICAL Sp. z o.o.';
+    const footerDesc = footerText || 'Oferta ma charakter informacyjny i wymaga potwierdzenia dostępności komponentów oraz warunków montażu po wizji lokalnej lub analizie technicznej.';
+
     const footerHtml = `
       <div style="
         width: 100%;
@@ -145,8 +148,8 @@ ${cssText}
         padding: 4mm 10mm 0;
         box-sizing: border-box;
       ">
-        <div style="color:#c9a84c;font-weight:700;margin-bottom:1mm;letter-spacing:.3px;">METICAL Sp. z o.o.</div>
-        <div>Oferta ma charakter informacyjny i wymaga potwierdzenia dostępności komponentów oraz warunków montażu po wizji lokalnej lub analizie technicznej.</div>
+        <div style="color:#c9a84c;font-weight:700;margin-bottom:1mm;letter-spacing:.3px;">${footerName}</div>
+        <div>${footerDesc}</div>
       </div>`;
 
     const pdfBuffer = await page.pdf({

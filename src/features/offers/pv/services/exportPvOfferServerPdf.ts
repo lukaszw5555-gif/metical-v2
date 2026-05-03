@@ -27,9 +27,15 @@ async function assetToDataUrl(path: string): Promise<string | null> {
 }
 
 // ─── Generate PDF Blob (no download) ──────────────────
+export interface PdfFooterOptions {
+  footerCompanyName?: string;
+  footerText?: string;
+}
+
 export async function generatePvOfferServerPdfBlob(
   element: HTMLElement,
-  filename: string
+  filename: string,
+  footerOptions?: PdfFooterOptions,
 ): Promise<Blob> {
   // ─── 1. Clone and strip UI elements ─────────────────
   const clone = element.cloneNode(true) as HTMLElement;
@@ -99,6 +105,8 @@ export async function generatePvOfferServerPdfBlob(
       cssText,
       origin: window.location.origin,
       filename,
+      footerCompanyName: footerOptions?.footerCompanyName,
+      footerText: footerOptions?.footerText,
     }),
   });
 

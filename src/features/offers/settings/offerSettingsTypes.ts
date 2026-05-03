@@ -2,6 +2,7 @@
 
 export interface OfferSettings {
   id: string;
+  offer_type: string;
   company_name: string | null;
   company_address: string | null;
   company_nip: string | null;
@@ -20,5 +21,5 @@ export interface OfferSettings {
 }
 
 export type UpdateOfferSettingsInput = Partial<
-  Omit<OfferSettings, 'id' | 'created_at' | 'updated_at'>
+  Omit<OfferSettings, 'id' | 'offer_type' | 'created_at' | 'updated_at'>
 >;

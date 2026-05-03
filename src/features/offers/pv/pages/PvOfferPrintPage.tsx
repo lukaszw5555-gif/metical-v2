@@ -39,7 +39,7 @@ export default function PvOfferPrintPage() {
     if (!id) return;
     try {
       setError(null);
-      const [o, it, s] = await Promise.all([getPvOfferById(id), getPvOfferItems(id), getOfferSettings()]);
+      const [o, it, s] = await Promise.all([getPvOfferById(id), getPvOfferItems(id), getOfferSettings('PV')]);
       setOffer(o);
       setItems(it);
       setSettings(s);
@@ -85,7 +85,10 @@ export default function PvOfferPrintPage() {
     setPdfPreviewBlob(null);
 
     try {
-      const blob = await generatePvOfferServerPdfBlob(docRef.current, pdfFilename);
+      const blob = await generatePvOfferServerPdfBlob(docRef.current, pdfFilename, {
+        footerCompanyName: settings?.company_name || undefined,
+        footerText: settings?.pdf_footer_text || undefined,
+      });
       const url = URL.createObjectURL(blob);
       setPdfPreviewBlob(blob);
       setPdfPreviewUrl(url);
@@ -371,7 +374,7 @@ export default function PvOfferPrintPage() {
         {/* H. Footer — screen preview instance (hidden in server render by API) */}
         <div className="pv-print-footer">
           <p><strong>{settings?.company_name || 'METICAL Sp. z o.o.'}</strong></p>
-          <p>Oferta ma charakter informacyjny i wymaga potwierdzenia dostępności komponentów oraz warunków montażu po wizji lokalnej lub analizie technicznej.</p>
+          <p>{settings?.pdf_footer_text || 'Oferta ma charakter informacyjny i wymaga potwierdzenia dostępności komponentów oraz warunków montażu po wizji lokalnej lub analizie technicznej.'}</p>
         </div>
 
       </div>{/* end pv-print-doc-source */}

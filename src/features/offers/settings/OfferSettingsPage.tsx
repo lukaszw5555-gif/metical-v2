@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import PageHeader from '@/components/layout/PageHeader';
 import { useAuth } from '@/context/AuthContext';
 import { getOfferSettings, updateOfferSettings } from './offerSettingsService';
-import { Loader2, AlertCircle, Check, Building2, FileText, Settings2, Hash } from 'lucide-react';
+import { Loader2, AlertCircle, Check, Building2, FileText, Settings2, Hash, Tag } from 'lucide-react';
 
 export default function OfferSettingsPage() {
   const { profile } = useAuth();
@@ -27,12 +27,14 @@ export default function OfferSettingsPage() {
   const [defaultVatRate, setDefaultVatRate] = useState('8');
   const [offerNumberPrefix, setOfferNumberPrefix] = useState('PV');
   const [offerNumberNext, setOfferNumberNext] = useState('1');
+  const [offerType, setOfferType] = useState('PV');
 
   const loadSettings = useCallback(async () => {
     try {
       setError(null);
-      const s = await getOfferSettings();
+      const s = await getOfferSettings('PV');
       setSettingsId(s.id);
+      setOfferType(s.offer_type || 'PV');
       setCompanyName(s.company_name || '');
       setCompanyAddress(s.company_address || '');
       setCompanyNip(s.company_nip || '');
@@ -152,6 +154,20 @@ export default function OfferSettingsPage() {
               <p className="text-xs text-amber-800">Tylko administrator może edytować ustawienia ofert.</p>
             </div>
           )}
+
+          {/* ─── Offer Type Badge ─────────────────────── */}
+          <div className="card p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Tag size={16} className="text-amber-500" />
+              <p className="text-xs font-bold text-gray-900 uppercase tracking-wide">Typ oferty</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-sm font-semibold border border-amber-200">
+                {offerType}
+              </span>
+              <span className="text-[10px] text-muted-400">Ustawienia dotyczą wybranego typu oferty.</span>
+            </div>
+          </div>
 
           {/* ─── Company Data ─────────────────────────── */}
           <div className="card p-4">

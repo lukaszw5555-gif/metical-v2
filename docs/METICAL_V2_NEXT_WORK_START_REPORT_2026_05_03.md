@@ -1,10 +1,14 @@
 # METICAL V2 — raport startowy do dalszych prac
 
 **Data:** 2026-05-03
+**Ostatnia aktualizacja:** 2026-05-03 po PV PDF 2.2I
 
 ---
 
 ## Aktualny stabilny stan
+
+**Commit:** `4d50197`
+**Tag:** `stable-pv-2-2i-mobile-single-download-2026-05-03`
 
 Aplikacja ma działające:
 
@@ -24,53 +28,52 @@ Aplikacja ma działające:
 
 ## Ostatnio zakończony etap
 
-PV PDF 2.2G:
+PV PDF 2.2G → 2.2H → 2.2I:
 
-- naprawiono białe PDF-y,
-- przywrócono premium hero overlay,
-- poprawiono stopkę,
-- zachowano realny PDF preview,
-- PDF jest używalny i stabilny na tym etapie,
-- nie kontynuować dalszych poprawek PDF bez osobnego sprintu.
+- 2.2G: naprawiono białe PDF-y, przywrócono hero overlay, poprawiono stopkę, wdrożono realny PDF preview.
+- 2.2H: naprawiono powtarzanie nagłówka tabeli na kolejnych stronach PDF.
+- 2.2I: naprawiono podwójne pobieranie PDF na mobile — teraz pobiera się jeden plik.
+- PDF jest stabilny, potwierdzony przez użytkownika na desktopie i mobile.
+- Nie kontynuować dalszych poprawek PDF bez osobnego sprintu.
 
-## Znane ograniczenia PDF
+## Znane ograniczenia PDF (stan po 2.2I)
 
-- iOS może pokazywać Unknown.pdf,
-- nagłówek tabeli może nie powtarzać się na drugiej stronie,
-- API PDF wymaga zabezpieczenia przed SaaS,
-- V3 programmatic zostaje jako opcja przyszłościowa.
+- iOS może wymagać Web Share API zamiast `<a download>` — obsłużone.
+- API PDF (`/api/generate-pv-offer-pdf`) nie jest jeszcze zabezpieczone tokenem — do zrobienia w sprincie panel administratora.
+- V3 programmatic (jsPDF) zostaje jako opcja przyszłościowa — nie wdrażać teraz.
 
 ## Następne rekomendowane sprinty
 
-1. **Stabilizacja drobna aplikacji**
-   - dokończenie P5/P6/P8/P9/P10 z regression raportu.
+### 1. Ustawienia ofert 1.0 ← **najbliższy rekomendowany sprint**
+- Stopka PDF (dane firmy do konfiguracji).
+- Tekst „kolejnego kroku".
+- Czas realizacji.
+- Domyślna ważność oferty.
+- Domyślna stawka VAT.
+- Numeracja ofert.
 
-2. **Ustawienia ofert**
-   - stopka PDF,
-   - dane firmy,
-   - tekst kolejnego kroku,
-   - czas realizacji,
-   - domyślna ważność oferty,
-   - domyślna stawka VAT,
-   - numeracja ofert.
+### 2. Panel administratora / użytkownicy / role / deaktywacja
+- Tworzenie użytkowników.
+- Zarządzanie rolami.
+- Deaktywacja użytkowników.
+- Zabezpieczenie API PDF tokenem.
 
-3. **Panel administratora**
-   - tworzenie użytkowników,
-   - role,
-   - deaktywacja użytkowników,
-   - zabezpieczenie API PDF.
+### 3. Zabezpieczenie API PDF
+- Dodanie tokenu / API key do endpointu `/api/generate-pv-offer-pdf`.
+- Może być częścią sprintu panel administratora.
 
-4. **Załączniki**
-   - zdjęcia i pliki do klienta,
-   - później do leadów, ofert i inwestycji.
+### 4. Załączniki
+- Zdjęcia i pliki do klienta.
+- Później: do leadów, ofert i inwestycji.
 
-5. **Oferty PV UX v2**
-   - duplikowanie ofert,
-   - walidacja numeru,
-   - historia zmian.
+### 5. Oferty PV UX v2
+- Duplikowanie ofert.
+- Walidacja numeru oferty.
+- Historia zmian.
 
 ## Decyzja strategiczna
 
-Nie otwierać teraz nowego silnika PDF.
-Nie ruszać PDF, jeśli nie ma krytycznego błędu.
-Najbliższy wartościowy kierunek: **Ustawienia ofert** albo **Panel administratora**.
+- **Nie otwierać nowego silnika PDF.**
+- **Nie ruszać PDF** przy sprintach: ustawienia ofert, panel admina, załączniki.
+- Jeśli PDF wymaga zmian → osobny sprint PDF z jasnym opisem problemu.
+- Najbliższy wartościowy kierunek: **Ustawienia ofert 1.0**.

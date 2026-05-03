@@ -376,3 +376,47 @@ Obecny HTML/Chromium jest aktywnym, stabilnym generatorem. V3 programmatic zosta
 2. mobile zacznie generować błędy,
 3. będzie potrzebna pełna kontrola tabel i stopki,
 4. będziemy budować uniwersalny silnik ofert dla wielu branż.
+
+---
+
+## Aktualizacja po PV PDF 2.2I (2026-05-03)
+
+### Status obecnego silnika
+
+- **Obecny Chromium/Puppeteer PDF generator jest aktywnym, stabilnym silnikiem produkcyjnym.**
+- Stabilny commit: `4d50197`, tag: `stable-pv-2-2i-mobile-single-download-2026-05-03`.
+- Po sprintach 2.2G → 2.2H → 2.2I wszystkie znane problemy PDF zostały naprawione:
+  - białe PDF-y ✅
+  - hero overlay ✅
+  - stopka na każdej stronie ✅
+  - nagłówek tabeli powtarza się na kolejnych stronach ✅
+  - mobile pobiera jeden plik ✅
+  - podgląd PDF = pobrany PDF ✅
+
+### V3 programmatic — status
+
+- V3 programmatic (jsPDF + jspdf-autotable) **pozostaje wyłącznie opcją przyszłościową**.
+- **Nie przebudowywać PDF teraz.**
+- **Nie wracać do html2canvas.**
+
+### Zasady ochrony PDF
+
+Przy następujących sprintach **NIE modyfikować silnika PDF, plików PDF ani logiki pobierania**:
+
+- Ustawienia ofert
+- Panel administratora / użytkownicy / role / deaktywacja
+- Załączniki (zdjęcia, pliki)
+- Oferty PV UX v2 (duplikowanie, walidacja, historia zmian)
+- Jakikolwiek inny sprint niezwiązany bezpośrednio z PDF
+
+### Kiedy wolno ruszać PDF
+
+Jeśli PDF ma być modyfikowany, **musi powstać osobny, dedykowany sprint PDF** z:
+
+1. Jasno opisanym problemem biznesowym lub technicznym.
+2. Reprodukowalnym scenariuszem błędu.
+3. Planem zmian ograniczonym do plików PDF.
+4. Checkpointem przed i po zmianie.
+5. Testem na desktopie i mobile.
+
+Bez spełnienia tych warunków — **PDF pozostaje zamrożony.**

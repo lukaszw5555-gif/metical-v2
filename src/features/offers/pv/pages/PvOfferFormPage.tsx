@@ -7,6 +7,7 @@ import { getClients } from '@/features/clients/services/clientService';
 import { getActiveProfiles } from '@/lib/services/profilesService';
 import { createPvOffer, getPvOfferById, updatePvOffer } from '../services/pvOfferService';
 import { getPvOfferItems, replacePvOfferItems } from '../services/pvOfferItemsService';
+import { getOfferSettings } from '../../settings/offerSettingsService';
 import PvOfferItemsSection, { existingItemToDraft, createDraftFromComponent } from '../components/PvOfferItemsSection';
 import PvOfferSummaryPanel from '../components/PvOfferSummaryPanel';
 import PvOfferFlowChecklist from '../components/PvOfferFlowChecklist';
@@ -113,7 +114,9 @@ export default function PvOfferFormPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [ld, cl, pr] = await Promise.all([getLeads(), getClients(), getActiveProfiles()]);
+      const [ld, cl, pr, settings] = await Promise.all([
+        getLeads(), getClients(), getActiveProfiles(), getOfferSettings(),
+      ]);
       setLeads(ld); setClients(cl); setProfiles(pr);
 
       if (isEdit && id) {
@@ -149,6 +152,14 @@ export default function PvOfferFormPage() {
         else if (o.client_id) { setSource('client'); setSelectedClientId(o.client_id); }
         setItems(existingItems.map(existingItemToDraft));
       } else {
+        // Apply defaults from offer settings for NEW offers
+        setVatRate(String(settings.default_vat_rate));
+        if (settings.default_offer_valid_days > 0) {
+          const d = new Date();
+          d.setDate(d.getDate() + settings.default_offer_valid_days);
+          setValidUntil(d.toISOString().slice(0, 10));
+        }
+
         // Prefill from query params (new offer only)
         const qpLeadId = searchParams.get('leadId');
         const qpClientId = searchParams.get('clientId');

@@ -30,6 +30,7 @@ import PvOfferFormPage from '@/features/offers/pv/pages/PvOfferFormPage';
 import PvOfferDetailPage from '@/features/offers/pv/pages/PvOfferDetailPage';
 import PvOfferPrintPage from '@/features/offers/pv/pages/PvOfferPrintPage';
 import PvComponentsPage from '@/features/offers/pv/pages/PvComponentsPage';
+import OfferSettingsPage from '@/features/offers/settings/OfferSettingsPage';
 
 export default function App() {
   return (
@@ -76,6 +77,7 @@ export default function App() {
               {/* Settings */}
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/settings/pv-components" element={<PvComponentsPage />} />
+              <Route path="/settings/offer-settings" element={<OfferSettingsPage />} />
 
               {/* Default redirect */}
               <Route path="/" element={<Navigate to="/tasks" replace />} />

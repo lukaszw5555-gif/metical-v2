@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/layout/PageHeader';
 import { useAuth } from '@/context/AuthContext';
-import { LogOut, User, Mail, Shield, Settings, CheckCircle, Bell, Loader2, Info, Archive, ChevronRight } from 'lucide-react';
+import { LogOut, User, Mail, Shield, Settings, CheckCircle, Bell, Loader2, Info, Archive, ChevronRight, FileText } from 'lucide-react';
 import { ROLE_LABELS } from '@/lib/constants';
 import {
   initPush,
@@ -193,6 +193,21 @@ export default function SettingsPage() {
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-gray-900">Katalog komponentów PV</p>
             <p className="text-xs text-muted-500">Zarządzaj produktami PV, import/export CSV</p>
+          </div>
+          <ChevronRight size={18} className="text-muted-400 shrink-0" />
+        </button>
+
+        {/* ─── Offer Settings ─────────────────────────────── */}
+        <button
+          onClick={() => navigate('/settings/offer-settings')}
+          className="card w-full p-4 flex items-center gap-4 text-left hover:bg-surface-50 transition-colors group"
+        >
+          <div className="w-10 h-10 rounded-xl bg-primary-50 group-hover:bg-primary-100 flex items-center justify-center shrink-0 transition-colors">
+            <FileText size={20} className="text-primary-600" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-gray-900">Ustawienia ofert</p>
+            <p className="text-xs text-muted-500">Dane firmy, domyślne parametry, teksty PDF</p>
           </div>
           <ChevronRight size={18} className="text-muted-400 shrink-0" />
         </button>

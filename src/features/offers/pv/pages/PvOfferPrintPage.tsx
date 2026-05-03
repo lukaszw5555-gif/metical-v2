@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { getPvOfferById } from '../services/pvOfferService';
 import { getPvOfferItems } from '../services/pvOfferItemsService';
 import { generatePvOfferServerPdfBlob, downloadPdfBlob } from '../services/exportPvOfferServerPdf';
+import { getOfferSettings } from '../../settings/offerSettingsService';
+import type { OfferSettings } from '../../settings/offerSettingsTypes';
 import type { PvOffer, PvOfferItem } from '../types/pvOfferTypes';
 import { PV_OFFER_TYPE_LABELS } from '../types/pvOfferTypes';
 import { Loader2, AlertCircle, ArrowLeft, Download, RefreshCw } from 'lucide-react';
@@ -31,14 +33,16 @@ export default function PvOfferPrintPage() {
   const [pdfPreviewLoading, setPdfPreviewLoading] = useState(false);
   const [pdfPreviewError, setPdfPreviewError] = useState<string | null>(null);
   const [sourceReady, setSourceReady] = useState(false);
+  const [settings, setSettings] = useState<OfferSettings | null>(null);
 
   const load = useCallback(async () => {
     if (!id) return;
     try {
       setError(null);
-      const [o, it] = await Promise.all([getPvOfferById(id), getPvOfferItems(id)]);
+      const [o, it, s] = await Promise.all([getPvOfferById(id), getPvOfferItems(id), getOfferSettings()]);
       setOffer(o);
       setItems(it);
+      setSettings(s);
     } catch (e) { setError(e instanceof Error ? e.message : 'Błąd'); }
     finally { setLoading(false); }
   }, [id]);
@@ -346,11 +350,11 @@ export default function PvOfferPrintPage() {
             </div>
             <div>
               <div className="pv-term-label">Czas realizacji</div>
-              <div className="pv-term-value">Do ustalenia po akceptacji oferty</div>
+              <div className="pv-term-value">{settings?.default_realization_time || 'Do ustalenia po akceptacji oferty'}</div>
             </div>
           </div>
           <div style={{ fontSize: 12, color: '#4a4a6a', lineHeight: 1.7 }}>
-            <strong>Kolejny krok:</strong> Potwierdzenie zakresu, dostępności komponentów i terminu montażu.
+            <strong>Kolejny krok:</strong> {settings?.next_step_text || 'Potwierdzenie zakresu, dostępności komponentów i terminu montażu.'}
           </div>
           <div className="pv-signatures">
             <div className="pv-sig-block">
@@ -366,7 +370,7 @@ export default function PvOfferPrintPage() {
 
         {/* H. Footer — screen preview instance (hidden in server render by API) */}
         <div className="pv-print-footer">
-          <p><strong>METICAL Sp. z o.o.</strong></p>
+          <p><strong>{settings?.company_name || 'METICAL Sp. z o.o.'}</strong></p>
           <p>Oferta ma charakter informacyjny i wymaga potwierdzenia dostępności komponentów oraz warunków montażu po wizji lokalnej lub analizie technicznej.</p>
         </div>
 

@@ -35,6 +35,9 @@ export default function PvOfferPrintPage() {
   const [sourceReady, setSourceReady] = useState(false);
   const [settings, setSettings] = useState<OfferSettings | null>(null);
 
+  // Detect mobile — iframe blob preview causes double-download on mobile browsers
+  const isMobile = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent) || window.innerWidth < 768;
+
   const load = useCallback(async () => {
     if (!id) return;
     try {
@@ -101,10 +104,10 @@ export default function PvOfferPrintPage() {
   }, [offer, pdfFilename, pdfPreviewUrl, settings]);
 
   useEffect(() => {
-    if (sourceReady && offer && !pdfPreviewUrl && !pdfPreviewLoading && !pdfPreviewError) {
+    if (!isMobile && sourceReady && offer && !pdfPreviewUrl && !pdfPreviewLoading && !pdfPreviewError) {
       generatePreview();
     }
-  }, [sourceReady, offer, pdfPreviewUrl, pdfPreviewLoading, pdfPreviewError, generatePreview]);
+  }, [isMobile, sourceReady, offer, pdfPreviewUrl, pdfPreviewLoading, pdfPreviewError, generatePreview]);
 
   // Cleanup blob URL on unmount
   useEffect(() => {
@@ -184,14 +187,16 @@ export default function PvOfferPrintPage() {
           <ArrowLeft size={14} />Wróć do oferty
         </button>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={generatePreview}
-            disabled={pdfPreviewLoading}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-muted-600 bg-white hover:bg-surface-100 transition-colors disabled:opacity-60">
-            <RefreshCw size={14} className={pdfPreviewLoading ? 'animate-spin' : ''} />
-            Odśwież
-          </button>
+          {!isMobile && (
+            <button
+              type="button"
+              onClick={generatePreview}
+              disabled={pdfPreviewLoading}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-muted-600 bg-white hover:bg-surface-100 transition-colors disabled:opacity-60">
+              <RefreshCw size={14} className={pdfPreviewLoading ? 'animate-spin' : ''} />
+              Odśwież
+            </button>
+          )}
           <button
             type="button"
             disabled={exporting || pdfPreviewLoading}
@@ -202,8 +207,20 @@ export default function PvOfferPrintPage() {
         </div>
       </div>
 
-      {/* ═══ REAL PDF PREVIEW ═══════════════════════════ */}
+      {/* ═══ REAL PDF PREVIEW (desktop only) / Mobile info card ═══ */}
       <div className="no-print" style={{ maxWidth: 820, margin: '0 auto' }}>
+        {isMobile ? (
+          /* Mobile: no iframe preview — avoids double-download artifact */
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '48px 20px', background: '#fff', borderRadius: 12, boxShadow: '0 2px 24px rgba(30,30,60,.08)', textAlign: 'center' }}>
+            <Download size={32} style={{ color: '#6366f1' }} />
+            <p style={{ fontSize: 14, fontWeight: 600, color: '#1e1e3a', margin: 0 }}>Podgląd PDF wyłączony na telefonie</p>
+            <p style={{ fontSize: 12, color: '#7a7a9a', margin: 0, maxWidth: 280, lineHeight: 1.5 }}>
+              Aby uniknąć podwójnego pobierania, użyj przycisku <strong>Pobierz PDF</strong> powyżej.
+            </p>
+          </div>
+        ) : (
+          /* Desktop: real PDF preview in iframe */
+          <>
         {pdfPreviewLoading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '60px 16px', background: '#fff', borderRadius: 12, boxShadow: '0 2px 24px rgba(30,30,60,.08)' }}>
             <Loader2 size={28} className="animate-spin text-primary-500" />
@@ -223,19 +240,21 @@ export default function PvOfferPrintPage() {
           </div>
         )}
 
-        {pdfPreviewUrl && !pdfPreviewLoading && (
-          <iframe
-            src={pdfPreviewUrl}
-            title="Podgląd PDF"
-            style={{
-              width: '100%',
-              height: 'calc(100vh - 120px)',
-              border: 'none',
-              borderRadius: 12,
-              boxShadow: '0 2px 24px rgba(30,30,60,.08)',
-              background: '#fff',
-            }}
-          />
+          {pdfPreviewUrl && !pdfPreviewLoading && (
+            <iframe
+              src={pdfPreviewUrl}
+              title="Podgląd PDF"
+              style={{
+                width: '100%',
+                height: 'calc(100vh - 120px)',
+                border: 'none',
+                borderRadius: 12,
+                boxShadow: '0 2px 24px rgba(30,30,60,.08)',
+                background: '#fff',
+              }}
+            />
+          )}
+          </>
         )}
       </div>
 

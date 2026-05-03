@@ -127,7 +127,7 @@ ${cssText}
 
     console.log('[PDF API] setContent done');
 
-    await page.emulateMediaType('screen');
+    await page.emulateMediaType('print');
 
     // ─── Generate PDF ─────────────────────────────────
     console.log('[PDF API] pdf start...');

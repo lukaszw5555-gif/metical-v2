@@ -106,9 +106,10 @@ export default function PvOfferPrintPage() {
     };
   }, [pdfPreviewUrl]);
 
-  // ─── Download handler ─────────────────────────────────
+  // ─── Download handler (with double-click guard) ───────
   const handleDownload = async () => {
     if (!offer || !docRef.current) return;
+    if (exporting) return; // ← guard against double-tap on mobile
     setExporting(true);
     try {
       // Re-use existing blob if available
@@ -168,12 +169,13 @@ export default function PvOfferPrintPage() {
     <div style={{ background: '#f0f0f6', minHeight: '100vh', padding: '16px' }}>
       {/* Controls — hidden on print */}
       <div className="pv-print-controls no-print">
-        <button onClick={() => navigate(`/sales/offers/pv/${offer.id}`)}
+        <button type="button" onClick={() => navigate(`/sales/offers/pv/${offer.id}`)}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-muted-600 bg-white hover:bg-surface-100 transition-colors">
           <ArrowLeft size={14} />Wróć do oferty
         </button>
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={generatePreview}
             disabled={pdfPreviewLoading}
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-muted-600 bg-white hover:bg-surface-100 transition-colors disabled:opacity-60">
@@ -181,6 +183,7 @@ export default function PvOfferPrintPage() {
             Odśwież
           </button>
           <button
+            type="button"
             disabled={exporting || pdfPreviewLoading}
             onClick={handleDownload}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold text-white bg-primary-600 hover:bg-primary-700 active:scale-[0.98] transition-all shadow-sm disabled:opacity-60">

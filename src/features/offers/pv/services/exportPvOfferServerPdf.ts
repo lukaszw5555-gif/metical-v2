@@ -132,35 +132,38 @@ export async function generatePvOfferServerPdfBlob(
 
 // ─── Download / share a PDF blob ──────────────────────
 export function downloadPdfBlob(blob: Blob, filename: string): void {
+  const safeName = `${filename}.pdf`;
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
+  // ── iOS: prefer Web Share API for native save-to-files ──
   if (isIOS) {
-    // Try Web Share API with File() so iOS sees the real filename
-    const pdfFile = new File([blob], `${filename}.pdf`, { type: 'application/pdf' });
+    try {
+      const pdfFile = new File([blob], safeName, { type: 'application/pdf' });
 
-    if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
-      navigator.share({ files: [pdfFile], title: filename }).catch((shareErr) => {
-        // User cancelled or share failed — fall through to blob URL
-        console.warn('[PDF CLIENT] Web Share cancelled/failed:', shareErr);
-        const url = window.URL.createObjectURL(blob);
-        window.location.href = url;
-      });
-      return;
+      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+        navigator.share({ files: [pdfFile], title: filename }).catch((shareErr) => {
+          // User cancelled share — do NOT open blob URL (that causes the blank page)
+          console.warn('[PDF CLIENT] Web Share cancelled/failed:', shareErr);
+        });
+        return;
+      }
+    } catch {
+      // File constructor or canShare not supported — fall through to <a> download
     }
-
-    // Fallback: open blob URL directly (Safari may show "Unknown.pdf")
-    const url = window.URL.createObjectURL(blob);
-    window.location.href = url;
-  } else {
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${filename}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    setTimeout(() => window.URL.revokeObjectURL(url), 5000);
   }
+
+  // ── Universal: single <a download> click ──
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = safeName;
+  // Hide the element so it cannot interact with page layout / events
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  // Clean up synchronously (element) + async (blob URL)
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 // ─── Legacy combined function ─────────────────────────

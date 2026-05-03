@@ -98,7 +98,7 @@ export default function PvOfferPrintPage() {
     } finally {
       setPdfPreviewLoading(false);
     }
-  }, [offer, pdfFilename, pdfPreviewUrl]);
+  }, [offer, pdfFilename, pdfPreviewUrl, settings]);
 
   useEffect(() => {
     if (sourceReady && offer && !pdfPreviewUrl && !pdfPreviewLoading && !pdfPreviewError) {
@@ -120,7 +120,10 @@ export default function PvOfferPrintPage() {
     setExporting(true);
     try {
       // Re-use existing blob if available
-      const blob = pdfPreviewBlob || await generatePvOfferServerPdfBlob(docRef.current, pdfFilename);
+      const blob = pdfPreviewBlob || await generatePvOfferServerPdfBlob(docRef.current, pdfFilename, {
+        footerCompanyName: settings?.company_name || undefined,
+        footerText: settings?.pdf_footer_text || undefined,
+      });
       downloadPdfBlob(blob, pdfFilename);
     } catch (err) {
       console.error('[PDF] Download failed:', err);

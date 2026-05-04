@@ -31,6 +31,7 @@ import PvOfferDetailPage from '@/features/offers/pv/pages/PvOfferDetailPage';
 import PvOfferPrintPage from '@/features/offers/pv/pages/PvOfferPrintPage';
 import PvComponentsPage from '@/features/offers/pv/pages/PvComponentsPage';
 import OfferSettingsPage from '@/features/offers/settings/OfferSettingsPage';
+import ArchivedInvestmentsPage from '@/features/investments/ArchivedInvestmentsPage';
 
 export default function App() {
   return (
@@ -78,6 +79,7 @@ export default function App() {
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/settings/pv-components" element={<PvComponentsPage />} />
               <Route path="/settings/offer-settings" element={<OfferSettingsPage />} />
+              <Route path="/settings/investments-archive" element={<ArchivedInvestmentsPage />} />
 
               {/* Default redirect */}
               <Route path="/" element={<Navigate to="/tasks" replace />} />

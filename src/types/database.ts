@@ -58,6 +58,8 @@ export interface Investment {
   client_id: string | null;
   created_at: string;
   updated_at: string;
+  archived_at: string | null;
+  archived_by: string | null;
 }
 
 // ─── Investment Member ───────────────────────────────────
@@ -147,7 +149,9 @@ export type ActivityEventType =
   | 'investment_edited'
   | 'investment_comment'
   | 'investment_comment_added'
-  | 'investment_status_changed';
+  | 'investment_status_changed'
+  | 'investment_archived'
+  | 'investment_restored';
 
 export type ActivityEntityType = 'task' | 'investment';
 

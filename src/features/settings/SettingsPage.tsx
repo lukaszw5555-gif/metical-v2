@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/layout/PageHeader';
 import { useAuth } from '@/context/AuthContext';
-import { LogOut, User, Mail, Shield, Settings, CheckCircle, Bell, Loader2, Info, Archive, ChevronRight, FileText } from 'lucide-react';
+import { LogOut, User, Mail, Shield, Settings, CheckCircle, Bell, Loader2, Info, Archive, ChevronRight, FileText, Building2 } from 'lucide-react';
 import { ROLE_LABELS } from '@/lib/constants';
 import {
   initPush,
@@ -211,6 +211,23 @@ export default function SettingsPage() {
           </div>
           <ChevronRight size={18} className="text-muted-400 shrink-0" />
         </button>
+
+        {/* ─── Archived Investments (admin only) ────────────── */}
+        {profile?.role === 'admin' && (
+          <button
+            onClick={() => navigate('/settings/investments-archive')}
+            className="card w-full p-4 flex items-center gap-4 text-left hover:bg-surface-50 transition-colors group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-red-50 group-hover:bg-red-100 flex items-center justify-center shrink-0 transition-colors">
+              <Building2 size={20} className="text-red-500" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-gray-900">Archiwum inwestycji</p>
+              <p className="text-xs text-muted-500">Przeglądaj i przywracaj zarchiwizowane inwestycje</p>
+            </div>
+            <ChevronRight size={18} className="text-muted-400 shrink-0" />
+          </button>
+        )}
 
         {/* ─── Archive Link ──────────────────────────────── */}
         <button

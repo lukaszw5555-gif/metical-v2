@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/layout/PageHeader';
 import { useAuth } from '@/context/AuthContext';
-import { getInvestmentById, updateInvestmentStatus, updateInvestment } from '@/features/investments/services/investmentsService';
+import { getInvestmentById, updateInvestmentStatus, updateInvestment, archiveInvestment } from '@/features/investments/services/investmentsService';
 import { getInvestmentComments, addInvestmentComment } from '@/features/investments/services/investmentCommentsService';
 import { getTasksByInvestmentId } from '@/features/tasks/services/tasksService';
 import { fetchInvestmentActivity, logActivity } from '@/features/activity/services/activityLogService';
@@ -18,7 +18,7 @@ import {
 } from '@/lib/constants';
 import {
   Loader2, AlertCircle, MapPin, User, Phone, Mail, Clock, Banknote,
-  Send, MessageSquare, History, ChevronDown, ChevronUp, Package, ClipboardCheck, Pencil, X, Check,
+  Send, MessageSquare, History, ChevronDown, ChevronUp, Package, ClipboardCheck, Pencil, X, Check, Archive,
 } from 'lucide-react';
 
 export default function InvestmentDetailPage() {
@@ -40,6 +40,7 @@ export default function InvestmentDetailPage() {
   const [submittingComment, setSubmittingComment] = useState(false);
   const [showActivity, setShowActivity] = useState(false);
   const [showStatusPanel, setShowStatusPanel] = useState(false);
+  const [archiving, setArchiving] = useState(false);
 
   // Edit state
   const [editing, setEditing] = useState(false);
@@ -213,6 +214,23 @@ export default function InvestmentDetailPage() {
     } finally { setSavingEdit(false); }
   };
 
+  // ─── Archive investment (admin only) ───────────────────
+  const isAdmin = authProfile?.role === 'admin';
+  const canArchive = isAdmin && inv !== null && !inv.archived_at;
+
+  const handleArchive = async () => {
+    if (!inv || !isAdmin) return;
+    if (!confirm('Czy na pewno chcesz przenieść tę inwestycję do archiwum?')) return;
+    setArchiving(true);
+    try {
+      await archiveInvestment(inv.id, userId);
+      navigate('/investments');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Błąd archiwizacji');
+      setArchiving(false);
+    }
+  };
+
   // Helpers
   const profileName = (pid: string | null) => {
     if (!pid) return '—';
@@ -247,6 +265,8 @@ export default function InvestmentDetailPage() {
       case 'investment_comment_added': return 'Dodano komentarz';
       case 'investment_created': return 'Utworzono inwestycję';
       case 'investment_edited': return 'Edytowano inwestycję';
+      case 'investment_archived': return 'Przeniesiono do archiwum';
+      case 'investment_restored': return 'Przywrócono z archiwum';
       default: return entry.event_type;
     }
   };
@@ -402,6 +422,20 @@ export default function InvestmentDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Archive button — admin only, not already archived */}
+          {canArchive && (
+            <div className="mt-3 pt-3 border-t border-surface-100">
+              <button
+                onClick={handleArchive}
+                disabled={archiving}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 active:scale-[0.98] transition-all disabled:opacity-60"
+              >
+                {archiving ? <Loader2 size={16} className="animate-spin" /> : <Archive size={16} />}
+                {archiving ? 'Archiwizowanie...' : 'Archiwizuj inwestycję'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ─── Components note ─────────────────────────── */}

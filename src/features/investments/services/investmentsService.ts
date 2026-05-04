@@ -3,12 +3,25 @@ import type { Investment, InvestmentStatus } from '@/types/database';
 
 // ─── Fetch ───────────────────────────────────────────────
 
-/** Fetch all investments visible to the current user (RLS enforced) */
+/** Fetch all active (non-archived) investments visible to the current user */
 export async function getInvestments(): Promise<Investment[]> {
   const { data, error } = await supabase
     .from('investments')
     .select('*')
+    .is('archived_at', null)
     .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data as Investment[];
+}
+
+/** Fetch all archived investments (admin archive page) */
+export async function getArchivedInvestments(): Promise<Investment[]> {
+  const { data, error } = await supabase
+    .from('investments')
+    .select('*')
+    .not('archived_at', 'is', null)
+    .order('archived_at', { ascending: false });
 
   if (error) throw error;
   return data as Investment[];
@@ -174,4 +187,52 @@ export async function deleteInvestment(id: string): Promise<void> {
     .eq('id', id);
 
   if (error) throw error;
+}
+
+// ─── Archive / Restore (admin only at UI/service level) ─────
+
+/** Soft-archive an investment */
+export async function archiveInvestment(id: string, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('investments')
+    .update({ archived_at: new Date().toISOString(), archived_by: userId })
+    .eq('id', id);
+
+  if (error) throw error;
+
+  // Log activity
+  const { error: logErr } = await supabase
+    .from('activity_log')
+    .insert({
+      actor_id: userId,
+      event_type: 'investment_archived',
+      entity_type: 'investment',
+      entity_id: id,
+      investment_id: id,
+      metadata: {},
+    });
+  if (logErr) console.error('[Investments] Failed to log archive activity:', logErr.message);
+}
+
+/** Restore an archived investment */
+export async function restoreInvestment(id: string, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('investments')
+    .update({ archived_at: null, archived_by: null })
+    .eq('id', id);
+
+  if (error) throw error;
+
+  // Log activity
+  const { error: logErr } = await supabase
+    .from('activity_log')
+    .insert({
+      actor_id: userId,
+      event_type: 'investment_restored',
+      entity_type: 'investment',
+      entity_id: id,
+      investment_id: id,
+      metadata: {},
+    });
+  if (logErr) console.error('[Investments] Failed to log restore activity:', logErr.message);
 }

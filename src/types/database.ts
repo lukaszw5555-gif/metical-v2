@@ -254,6 +254,7 @@ export interface SalesLead {
   // Source
   source_type: LeadSourceType | null;
   source_record_id: string | null;
+  source_external_id: string | null;
   source_payload_raw: Record<string, unknown> | null;
   source_campaign: string | null;
   source_form_name: string | null;

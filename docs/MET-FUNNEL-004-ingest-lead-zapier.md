@@ -21,12 +21,19 @@ Content-Type: application/json
   "investment_type": "dom | hala | instalacja | pv | inne",
   "source_form_name": "METICAL_Briefy/Domy",
   "source_campaign": null,
-  "source_record_id": "opcjonalny-unikalny-id-wiersza-z-excela",
+  "source_external_id": "tekstowy-identyfikator-z-zapiera-lub-excela",
+  "source_record_id": null,
   "payload": {
     "...pola briefu z arkusza..."
   }
 }
 ```
+
+> **Ważne:** Używaj `source_external_id` dla identyfikatorów z Excela/Zapier/Meta.
+> Pole `source_record_id` jest opcjonalne i akceptuje **wyłącznie poprawne UUID**.
+> Jeśli podasz tekstowy ID w `source_record_id`, zostanie automatycznie przeniesiony do `source_external_id`.
+>
+> `source_external_id` może być: numer wiersza, ID rekordu z arkusza, wartość z Zapier (np. `Domy-{{Row ID}}`), ID z Meta Lead Ads.
 
 ---
 
@@ -38,7 +45,7 @@ Content-Type: application/json
   "investment_type": "dom",
   "source_form_name": "METICAL_Briefy/Domy",
   "source_campaign": null,
-  "source_record_id": null,
+  "source_external_id": "Domy-001",
   "payload": {
     "D-01 Etap": "Planuję budowę",
     "D-02 Termin": "W ciągu 12 miesięcy",
@@ -67,7 +74,7 @@ Content-Type: application/json
   "investment_type": "hala",
   "source_form_name": "METICAL_Briefy/Hale",
   "source_campaign": null,
-  "source_record_id": null,
+  "source_external_id": "Hale-001",
   "payload": {
     "H-01 Obiekt": "Hala magazynowa",
     "H-02 Rodzaj": "Nowa budowa",
@@ -98,7 +105,7 @@ Content-Type: application/json
   "investment_type": "instalacja",
   "source_form_name": "METICAL_Briefy/Instalacje",
   "source_campaign": null,
-  "source_record_id": null,
+  "source_external_id": "Inst-001",
   "payload": {
     "I-01 Zakres": "Hydraulika + elektryka",
     "I-02 Obiekt": "Dom jednorodzinny",
@@ -202,7 +209,7 @@ Zmapuj kolumny z arkusza Excel do pól payload:
   "source_type": "website_domy",
   "investment_type": "dom",
   "source_form_name": "METICAL_Briefy/Domy",
-  "source_record_id": "{{row_id z Excela, jeśli dostępny}}",
+  "source_external_id": "Domy-{{Row ID lub numer wiersza z Zapier}}",
   "payload": {
     "D-01 Etap": "{{kolumna Etap}}",
     "D-02 Termin": "{{kolumna Termin}}",
@@ -221,6 +228,8 @@ Zmapuj kolumny z arkusza Excel do pól payload:
 
 ## Ochrona przed duplikatami
 
-1. Jeśli podasz `source_record_id` — endpoint sprawdza czy lead z tym samym `source_type` + `source_record_id` już istnieje.
-2. Jeśli brak `source_record_id` — sprawdza `source_type` + `contact_phone` lub `contact_email` z ostatnich 24h.
-3. Duplikat zwraca `200 OK` z `duplicate: true` — Zapier nie widzi błędu.
+1. **Priorytet 1:** `source_external_id` — jeśli podano, endpoint sprawdza czy lead z tym samym `source_type` + `source_external_id` już istnieje.
+2. **Priorytet 2:** `source_record_id` (UUID) — jeśli podano poprawny UUID.
+3. **Priorytet 3:** Fallback po `source_type` + `contact_phone` lub `contact_email` z ostatnich 24h.
+4. Duplikat zwraca `200 OK` z `duplicate: true` — Zapier nie widzi błędu.
+5. Jeśli `source_record_id` nie jest UUID, wartość trafia automatycznie do `source_external_id`.

@@ -113,16 +113,36 @@ function mapInstalacje(p: Record<string, unknown>) {
   };
 }
 
+// ─── UUID validator ──────────────────────────────────────
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function isValidUuid(value: unknown): boolean {
+  return typeof value === "string" && UUID_RE.test(value);
+}
+
 // ─── Duplicate check ─────────────────────────────────────
 
 async function checkDuplicate(
   client: ReturnType<typeof createClient>,
   sourceType: string,
+  sourceExternalId: string | null,
   sourceRecordId: string | null,
   phone: string | null,
   email: string | null,
 ): Promise<string | null> {
-  // Strategy 1: exact source_record_id match
+  // Priority 1: source_external_id
+  if (sourceExternalId) {
+    const { data } = await client
+      .from("sales_leads")
+      .select("id")
+      .eq("source_type", sourceType)
+      .eq("source_external_id", sourceExternalId)
+      .limit(1)
+      .maybeSingle();
+    if (data) return data.id;
+  }
+
+  // Priority 2: source_record_id (UUID only)
   if (sourceRecordId) {
     const { data } = await client
       .from("sales_leads")
@@ -134,7 +154,7 @@ async function checkDuplicate(
     if (data) return data.id;
   }
 
-  // Strategy 2: same source_type + contact in last 24h
+  // Priority 3: same source_type + contact in last 24h
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
   if (phone) {
@@ -206,9 +226,27 @@ serve(async (req: Request) => {
       investment_type,
       source_form_name,
       source_campaign,
-      source_record_id,
+      source_record_id: rawSourceRecordId,
+      source_external_id: rawSourceExternalId,
       payload,
     } = body;
+
+    // Resolve IDs: source_record_id only if valid UUID
+    // Non-UUID values fall back to source_external_id
+    let resolvedRecordId: string | null = null;
+    let resolvedExternalId: string | null = rawSourceExternalId ? String(rawSourceExternalId) : null;
+
+    if (rawSourceRecordId) {
+      if (isValidUuid(rawSourceRecordId)) {
+        resolvedRecordId = rawSourceRecordId;
+      } else {
+        // Non-UUID source_record_id → treat as external ID
+        if (!resolvedExternalId) {
+          resolvedExternalId = String(rawSourceRecordId);
+        }
+        console.log(`[ingest-lead] source_record_id "${rawSourceRecordId}" is not UUID, moved to source_external_id`);
+      }
+    }
 
     if (!source_type || !investment_type || !payload || typeof payload !== "object") {
       return json({ ok: false, error: "source_type, investment_type, and payload are required" }, 400);
@@ -242,7 +280,7 @@ serve(async (req: Request) => {
     }
 
     // ── 6. Check duplicates ──────────────────────────────
-    const dupId = await checkDuplicate(serviceClient, source_type, source_record_id || null, phone, email);
+    const dupId = await checkDuplicate(serviceClient, source_type, resolvedExternalId, resolvedRecordId, phone, email);
     if (dupId) {
       console.log(`[ingest-lead] Duplicate detected: ${dupId}`);
       return json({ ok: true, duplicate: true, lead_id: dupId });
@@ -278,7 +316,8 @@ serve(async (req: Request) => {
 
       // Drum fields
       source_type: finalSourceType,
-      source_record_id: source_record_id || null,
+      source_record_id: resolvedRecordId,
+      source_external_id: resolvedExternalId,
       source_payload_raw: payload,
       source_campaign: source_campaign || null,
       source_form_name: finalFormName,

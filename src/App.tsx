@@ -32,6 +32,7 @@ import PvOfferPrintPage from '@/features/offers/pv/pages/PvOfferPrintPage';
 import PvComponentsPage from '@/features/offers/pv/pages/PvComponentsPage';
 import OfferSettingsPage from '@/features/offers/settings/OfferSettingsPage';
 import ArchivedInvestmentsPage from '@/features/investments/ArchivedInvestmentsPage';
+import LeadDrumAdminPage from '@/features/sales/pages/LeadDrumAdminPage';
 
 export default function App() {
   return (
@@ -80,6 +81,7 @@ export default function App() {
               <Route path="/settings/pv-components" element={<PvComponentsPage />} />
               <Route path="/settings/offer-settings" element={<OfferSettingsPage />} />
               <Route path="/settings/investments-archive" element={<ArchivedInvestmentsPage />} />
+              <Route path="/settings/lead-drum" element={<LeadDrumAdminPage />} />
 
               {/* Default redirect */}
               <Route path="/" element={<Navigate to="/tasks" replace />} />

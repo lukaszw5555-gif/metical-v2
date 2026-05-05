@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageHeader from '@/components/layout/PageHeader';
 import { useAuth } from '@/context/AuthContext';
-import { LogOut, User, Mail, Shield, Settings, CheckCircle, Bell, Loader2, Info, Archive, ChevronRight, FileText, Building2 } from 'lucide-react';
+import { LogOut, User, Mail, Shield, Settings, CheckCircle, Bell, Loader2, Info, Archive, ChevronRight, FileText, Building2, Inbox } from 'lucide-react';
 import { ROLE_LABELS } from '@/lib/constants';
 import {
   initPush,
@@ -211,6 +211,23 @@ export default function SettingsPage() {
           </div>
           <ChevronRight size={18} className="text-muted-400 shrink-0" />
         </button>
+
+        {/* ─── Lead Drum (admin/administracja only) ────────── */}
+        {(profile?.role === 'admin' || profile?.role === 'administracja') && (
+          <button
+            onClick={() => navigate('/settings/lead-drum')}
+            className="card w-full p-4 flex items-center gap-4 text-left hover:bg-surface-50 transition-colors group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-violet-50 group-hover:bg-violet-100 flex items-center justify-center shrink-0 transition-colors">
+              <Inbox size={20} className="text-violet-600" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-gray-900">Bęben leadów</p>
+              <p className="text-xs text-muted-500">Przeglądaj, kwalifikuj i przypisuj leady (admin)</p>
+            </div>
+            <ChevronRight size={18} className="text-muted-400 shrink-0" />
+          </button>
+        )}
 
         {/* ─── Archived Investments (admin only) ────────────── */}
         {profile?.role === 'admin' && (

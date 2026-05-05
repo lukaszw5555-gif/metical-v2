@@ -256,7 +256,7 @@ ALTER TABLE public.sales_leads
 -- 11. CREATE TABLE: lead_notes
 -- ═════════════════════════════════════════════════════════════
 
-CREATE TABLE public.lead_notes (
+CREATE TABLE IF NOT EXISTS public.lead_notes (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   lead_id     uuid NOT NULL REFERENCES public.sales_leads(id) ON DELETE CASCADE,
   author_id   uuid NOT NULL REFERENCES public.profiles(id),
@@ -306,9 +306,14 @@ CREATE INDEX IF NOT EXISTS idx_sales_leads_postal_code
 -- 13. INDEXES — lead_notes
 -- ═════════════════════════════════════════════════════════════
 
-CREATE INDEX idx_lead_notes_lead_id ON public.lead_notes(lead_id);
-CREATE INDEX idx_lead_notes_author_id ON public.lead_notes(author_id);
-CREATE INDEX idx_lead_notes_created_at ON public.lead_notes(created_at);
+CREATE INDEX IF NOT EXISTS idx_lead_notes_lead_id
+  ON public.lead_notes(lead_id);
+
+CREATE INDEX IF NOT EXISTS idx_lead_notes_author_id
+  ON public.lead_notes(author_id);
+
+CREATE INDEX IF NOT EXISTS idx_lead_notes_created_at
+  ON public.lead_notes(created_at);
 
 
 -- ═════════════════════════════════════════════════════════════

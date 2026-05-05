@@ -186,6 +186,50 @@ export type SalesServiceType =
   | 'kompleksowa_usluga'
   | 'inne';
 
+// ─── Lead Drum Types (MET-FUNNEL-002) ────────────────────
+
+export type LeadSourceType =
+  | 'website_domy'
+  | 'website_hale'
+  | 'website_instalacje'
+  | 'meta_domy'
+  | 'meta_hale'
+  | 'manual'
+  | 'excel_import'
+  | 'other';
+
+export type LeadInvestmentType = 'dom' | 'hala' | 'instalacja' | 'pv' | 'inne';
+
+export type LeadQualificationStatus =
+  | 'new'
+  | 'to_review'
+  | 'valuable'
+  | 'education_needed'
+  | 'incomplete'
+  | 'useless'
+  | 'spam'
+  | 'assigned'
+  | 'converted'
+  | 'lost';
+
+export type LeadQuality = 'A' | 'B' | 'C' | 'D' | 'X';
+
+export type LeadSalesStatus =
+  | 'not_started'
+  | 'first_contact_pending'
+  | 'contacted'
+  | 'no_answer'
+  | 'follow_up'
+  | 'meeting_scheduled'
+  | 'offer_needed'
+  | 'offer_sent'
+  | 'won'
+  | 'lost';
+
+export type LeadNoteType = 'general' | 'qualification' | 'contact' | 'internal';
+
+// ─── Sales Lead Interface ────────────────────────────────
+
 export interface SalesLead {
   id: string;
   full_name: string;
@@ -205,6 +249,73 @@ export interface SalesLead {
   converted_client_id: string | null;
   created_at: string;
   updated_at: string;
+
+  // ─── Drum fields (MET-FUNNEL-002) — all nullable ───────
+  // Source
+  source_type: LeadSourceType | null;
+  source_record_id: string | null;
+  source_payload_raw: Record<string, unknown> | null;
+  source_campaign: string | null;
+  source_form_name: string | null;
+  // Investment type
+  investment_type: LeadInvestmentType | null;
+  // Unified contact
+  contact_name: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  location_text: string | null;
+  postal_code: string | null;
+  desired_timeline: string | null;
+  // Qualification
+  qualification_status: LeadQualificationStatus;
+  lead_quality: LeadQuality | null;
+  // Assignment
+  assigned_user_id: string | null;
+  assigned_at: string | null;
+  assigned_by: string | null;
+  // Sales workflow
+  sales_status: LeadSalesStatus;
+  last_contact_at: string | null;
+  next_step_at: string | null;
+  next_step_note: string | null;
+  // Conversion
+  converted_investment_id: string | null;
+  // Brief: Domy
+  house_interest_type: string | null;
+  has_plot: string | null;
+  decision_stage: string | null;
+  planning_status: string | null;
+  documentation_status: string | null;
+  project_status: string | null;
+  expected_support_scope: string | null;
+  house_area_range: string | null;
+  house_layout_type: string | null;
+  client_priorities: string | null;
+  // Brief: Hale
+  hall_interest_type: string | null;
+  hall_object_type: string | null;
+  hall_type: string | null;
+  hall_investment_kind: string | null;
+  has_architectural_project: string | null;
+  hall_planning_status: string | null;
+  hall_project_status: string | null;
+  hall_width: string | null;
+  hall_length: string | null;
+  hall_height: string | null;
+  roof_type: string | null;
+  hall_form: string | null;
+  permit_mode: string | null;
+  expected_scope: string | null;
+  wall_covering: string | null;
+  roof_covering: string | null;
+  gate_doors_windows_info: string | null;
+  investment_description_raw: string | null;
+  // Brief: Instalacje
+  installation_scope: string | null;
+  installation_object_type: string | null;
+  installation_investment_kind: string | null;
+  installation_client_needs: string | null;
+  installation_description_raw: string | null;
 }
 
 // ─── Lead Comment ────────────────────────────────────────
@@ -213,6 +324,17 @@ export interface LeadComment {
   id: string;
   lead_id: string;
   author_id: string;
+  body: string;
+  created_at: string;
+}
+
+// ─── Lead Note (MET-FUNNEL-002) ──────────────────────────
+
+export interface LeadNote {
+  id: string;
+  lead_id: string;
+  author_id: string;
+  note_type: LeadNoteType;
   body: string;
   created_at: string;
 }

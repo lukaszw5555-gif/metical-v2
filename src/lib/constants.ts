@@ -7,6 +7,12 @@ import type {
   SalesLeadStatus,
   SalesLeadSource,
   SalesServiceType,
+  LeadSourceType,
+  LeadInvestmentType,
+  LeadQualificationStatus,
+  LeadQuality,
+  LeadSalesStatus,
+  LeadNoteType,
 } from '@/types/database';
 
 // ─── Task Status ─────────────────────────────────────────
@@ -178,4 +184,143 @@ export const LEAD_SERVICE_TYPE_LABELS: Record<SalesServiceType, string> = {
 export const LEAD_SERVICE_TYPES: SalesServiceType[] = [
   'pv', 'pv_magazyn', 'magazyn', 'pompa_ciepla', 'hydraulika',
   'elektryka', 'hala', 'dom', 'kompleksowa_usluga', 'inne',
+];
+
+// ═════════════════════════════════════════════════════════════
+// Lead Drum constants (MET-FUNNEL-002)
+// Additive only — does not modify anything above.
+// ═════════════════════════════════════════════════════════════
+
+// ─── Lead Source Type (drum) ────────────────────────────
+
+export const LEAD_SOURCE_TYPE_LABELS: Record<LeadSourceType, string> = {
+  website_domy: 'Strona — Domy',
+  website_hale: 'Strona — Hale',
+  website_instalacje: 'Strona — Instalacje',
+  meta_domy: 'Meta Ads — Domy',
+  meta_hale: 'Meta Ads — Hale',
+  manual: 'Ręcznie dodany',
+  excel_import: 'Import Excel',
+  other: 'Inne',
+};
+
+export const LEAD_SOURCE_TYPES: LeadSourceType[] = [
+  'website_domy', 'website_hale', 'website_instalacje',
+  'meta_domy', 'meta_hale',
+  'manual', 'excel_import', 'other',
+];
+
+// ─── Lead Investment Type (drum) ────────────────────────
+
+export const LEAD_INVESTMENT_TYPE_LABELS: Record<LeadInvestmentType, string> = {
+  dom: 'Dom',
+  hala: 'Hala',
+  instalacja: 'Instalacja',
+  pv: 'Fotowoltaika',
+  inne: 'Inne',
+};
+
+export const LEAD_INVESTMENT_TYPES: LeadInvestmentType[] = [
+  'dom', 'hala', 'instalacja', 'pv', 'inne',
+];
+
+// ─── Qualification Status (drum) ────────────────────────
+
+export const QUALIFICATION_STATUS_LABELS: Record<LeadQualificationStatus, string> = {
+  new: 'Nowy',
+  to_review: 'Do przeglądu',
+  valuable: 'Wartościowy',
+  education_needed: 'Wymaga edukacji',
+  incomplete: 'Niekompletny',
+  useless: 'Bezwartościowy',
+  spam: 'Spam',
+  assigned: 'Przypisany',
+  converted: 'Skonwertowany',
+  lost: 'Stracony',
+};
+
+export const QUALIFICATION_STATUS_COLORS: Record<LeadQualificationStatus, string> = {
+  new: '#6366f1',           // indigo-500
+  to_review: '#8b5cf6',    // violet-500
+  valuable: '#16a34a',     // green-600
+  education_needed: '#d97706', // amber-600
+  incomplete: '#f59e0b',   // amber-400
+  useless: '#9ca3af',      // gray-400
+  spam: '#ef4444',         // red-500
+  assigned: '#2563eb',     // blue-600
+  converted: '#059669',    // emerald-600
+  lost: '#dc2626',         // red-600
+};
+
+export const QUALIFICATION_STATUSES: LeadQualificationStatus[] = [
+  'new', 'to_review', 'valuable', 'education_needed',
+  'incomplete', 'useless', 'spam',
+  'assigned', 'converted', 'lost',
+];
+
+// ─── Lead Quality (drum) ────────────────────────────────
+
+export const LEAD_QUALITY_LABELS: Record<LeadQuality, string> = {
+  A: 'A — Gorący',
+  B: 'B — Ciepły',
+  C: 'C — Zimny',
+  D: 'D — Wątpliwy',
+  X: 'X — Niesklasyfikowany',
+};
+
+export const LEAD_QUALITY_COLORS: Record<LeadQuality, string> = {
+  A: '#16a34a',   // green-600
+  B: '#2563eb',   // blue-600
+  C: '#d97706',   // amber-600
+  D: '#9ca3af',   // gray-400
+  X: '#6b7280',   // gray-500
+};
+
+export const LEAD_QUALITIES: LeadQuality[] = ['A', 'B', 'C', 'D', 'X'];
+
+// ─── Sales Status (drum) ────────────────────────────────
+
+export const SALES_STATUS_LABELS: Record<LeadSalesStatus, string> = {
+  not_started: 'Nie rozpoczęto',
+  first_contact_pending: 'Pierwszy kontakt',
+  contacted: 'Skontaktowano',
+  no_answer: 'Brak odpowiedzi',
+  follow_up: 'Follow-up',
+  meeting_scheduled: 'Spotkanie umówione',
+  offer_needed: 'Oferta potrzebna',
+  offer_sent: 'Oferta wysłana',
+  won: 'Wygrany',
+  lost: 'Przegrany',
+};
+
+export const SALES_STATUS_COLORS: Record<LeadSalesStatus, string> = {
+  not_started: '#9ca3af',         // gray-400
+  first_contact_pending: '#8b5cf6', // violet-500
+  contacted: '#6366f1',           // indigo-500
+  no_answer: '#f59e0b',           // amber-400
+  follow_up: '#d97706',           // amber-600
+  meeting_scheduled: '#2563eb',   // blue-600
+  offer_needed: '#0ea5e9',        // sky-500
+  offer_sent: '#0891b2',          // cyan-600
+  won: '#16a34a',                 // green-600
+  lost: '#dc2626',                // red-600
+};
+
+export const SALES_STATUSES: LeadSalesStatus[] = [
+  'not_started', 'first_contact_pending', 'contacted', 'no_answer',
+  'follow_up', 'meeting_scheduled', 'offer_needed', 'offer_sent',
+  'won', 'lost',
+];
+
+// ─── Lead Note Type (drum) ──────────────────────────────
+
+export const LEAD_NOTE_TYPE_LABELS: Record<LeadNoteType, string> = {
+  general: 'Ogólna',
+  qualification: 'Kwalifikacja',
+  contact: 'Kontakt',
+  internal: 'Wewnętrzna',
+};
+
+export const LEAD_NOTE_TYPES: LeadNoteType[] = [
+  'general', 'qualification', 'contact', 'internal',
 ];
